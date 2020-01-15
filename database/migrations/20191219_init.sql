@@ -9,6 +9,8 @@ CREATE TABLE items
     product_id  varchar(30)         NULL     DEFAULT NULL,
     internal_id varchar(30)         NULL     DEFAULT NULL,
     title       varchar(255)        NOT NULL,
+    title_zh       varchar(255)        NOT NULL,
+    unit        varchar(30)         NULL     DEFAULT NULL,
     image       varchar(255)        NULL     DEFAULT NULL,
     created_at  timestamp           NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  timestamp           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

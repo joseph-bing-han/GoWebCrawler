@@ -9,22 +9,23 @@ import (
 
 var DB *gorm.DB
 
-// Price [...]
+// Prices [...]
 type Price struct {
 	ID        int64     `gorm:"primary_key;column:id;type:bigint(20) unsigned;not null" json:"-"`
 	ItemID    int64     `gorm:"index;column:item_id;type:bigint(20) unsigned" json:"item_id"`
-	Item      Item      `gorm:"association_foreignkey:item_id;foreignkey:id" json:"item_list"`
 	Price     float64   `gorm:"column:price;type:decimal(10,2);not null" json:"price"`
 	CreatedAt time.Time `gorm:"column:created_at;type:timestamp;not null" json:"created_at"`
 }
 
-// Item [...]
+// Items [...]
 type Item struct {
 	gorm.Model
 	Website    string `gorm:"unique_index:item_production_id;column:website;type:varchar(20)" json:"website"`
 	ProductID  string `gorm:"unique_index:item_production_id;column:product_id;type:varchar(30)" json:"product_id"`
 	InternalID string `gorm:"column:internal_id;type:varchar(30)" json:"internal_id"`
 	Title      string `gorm:"column:title;type:varchar(255);not null" json:"title"`
+	TitleZh    string `gorm:"column:title_zh;type:varchar(255);not null" json:"title_zh"`
+	Unit       string `gorm:"column:unit;type:varchar(30)" json:"unit"`
 	Image      string `gorm:"column:image;type:varchar(255)" json:"image"`
 	Prices     []Price
 }

@@ -16,25 +16,28 @@ type Msg struct {
 }
 
 func handler(ch chan Msg) {
-	//index := time.Now().Nanosecond()
 	rand.Seed(time.Now().UnixNano())
 	for {
+		time.Sleep(time.Second * time.Duration(12+rand.Intn(8)))
 		msg := <-ch
-		//fmt.Printf("Thread:%d  Run %s\n", index, num)
 		url := msg.url
 		id := msg.id
-		value, error := cache.Get(url)
-
+		//fmt.Println("Read URL:" + url)
 		// 判断是否已经查过了
-		if error != nil && value.(string) == "" {
+		value, error := cache.Get(url)
+		//// todo:test
+		//value = ""
+
+		if error != nil && error.Error() == "redis: nil" && value.(string) == "" {
 			cache.Set(url, 1)
 			var className string
 			if strings.Contains(url, "www.thewarehouse.co.nz") {
 				className = spider.SPIDER_WAREHOUSE
-			} else if strings.Contains(url, "www.paknsave.co.nz") {
-				className = spider.SPIDER_WAREHOUSE
+			} else if strings.Contains(url, "www.paknsaveonline.co.nz") {
+				className = spider.SPIDER_PAKNSAVE
 			}
 			spider := spider.Create(className)
+			//log.Println("Get URL: " + url)
 			spider.SetURL(url)
 			if err := spider.Run(); err == nil {
 				mq.Ack(id)
@@ -42,13 +45,15 @@ func handler(ch chan Msg) {
 		} else {
 			mq.Ack(id)
 		}
-
-		time.Sleep(time.Second * time.Duration(2+rand.Intn(8)))
 	}
 }
 
 func main() {
 	cpuNum := runtime.NumCPU() * 2
+
+	//// todo: test
+	//cpuNum = 1
+
 	runtime.GOMAXPROCS(cpuNum)
 	ch := make(chan Msg)
 	for i := 0; i < cpuNum; i++ {
@@ -64,4 +69,5 @@ func main() {
 			}
 		}
 	}
+
 }

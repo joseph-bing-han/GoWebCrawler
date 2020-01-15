@@ -1,10 +1,6 @@
 package main
 
-import (
-	"GoWebCrawler/src/utils/cache"
-	"GoWebCrawler/src/utils/mq"
-	"fmt"
-)
+import "GoWebCrawler/src/utils/mq"
 
 func main() {
 	//c := colly.NewCollector()
@@ -19,8 +15,6 @@ func main() {
 	//})
 	//
 	//c.Visit("http://go-colly.org/")
-	cache.Set("abc", "25467")
-	fmt.Println("finish")
-	mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
-	fmt.Println(cache.Get("abc"))
+	//mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.paknsaveonline.co.nz/"})
 }

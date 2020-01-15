@@ -41,9 +41,8 @@ func NewCollector() *colly.Collector {
 	// 添加referer防盗链
 	extensions.Referer(cr)
 
-	// 初始化代理池
-	rp, err := proxy.RoundRobinProxySwitcher("socks5://127.0.0.1:9010", "socks5://127.0.0.1:9020",
-		"socks5://127.0.0.1:9030", "socks5://127.0.0.1:9040", "socks5://127.0.0.1:9050")
+	//// 初始化代理池
+	rp, err := proxy.RoundRobinProxySwitcher("socks5://xebni:xebni@13.239.73.54:1984")
 	if err != nil {
 		log.Fatalln(err)
 	}

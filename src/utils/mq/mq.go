@@ -94,7 +94,7 @@ func checkPending() {
 							Stream:   STREAM,
 							Group:    GROUP,
 							Consumer: consumerName,
-							MinIdle:   time.Duration(during)*time.Second,
+							MinIdle:  time.Duration(during) * time.Second,
 							Messages: messages,
 						})
 					}
