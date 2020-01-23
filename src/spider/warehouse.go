@@ -19,7 +19,7 @@ type Warehouse struct {
 
 func (w *Warehouse) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector()
+		w.cr = NewCollector(true)
 	}
 	w.url = url
 }
@@ -34,7 +34,7 @@ func (w *Warehouse) Run() error {
 			if strings.Contains(url, "https://www.thewarehouse.co.nz") {
 				//fmt.Println(e.Attr("href"))
 				value, error := cache.Get(url)
-				if error != nil && error.Error() == "redis: nil" && value.(string) == "" {
+				if (error == nil || (error != nil && error.Error() == "redis: nil")) && value.(string) == ""  {
 					cache.Set(url, 1)
 					mq.Add(map[string]interface{}{"url": url})
 				}
@@ -63,7 +63,7 @@ func (w *Warehouse) Run() error {
 				// 在缓存系统中校验是否已经保存过了当天的数据
 				checkKey := time.Now().Format("20060102") + SPIDER_WAREHOUSE + productId
 				value, error := cache.Get(checkKey)
-				if error != nil && error.Error() == "redis: nil" && value.(string) == "" {
+				if (error == nil || (error != nil && error.Error() == "redis: nil")) && value.(string) == "" {
 
 					cache.Set(checkKey, 1)
 					var item model.Item

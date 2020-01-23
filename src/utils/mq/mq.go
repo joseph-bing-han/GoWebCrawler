@@ -65,6 +65,11 @@ func Ack(ID string) {
 	_redis.XAck(STREAM, GROUP, ID)
 }
 
+func Clear() {
+	_redis.Del(STREAM)
+	_redis.XGroupCreateMkStream(STREAM, GROUP, "0")
+}
+
 func checkPending() {
 	result := _redis.XPending(STREAM, GROUP)
 	pending, error := result.Result()

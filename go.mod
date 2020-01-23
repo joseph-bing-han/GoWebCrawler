@@ -10,6 +10,8 @@ require (
 	github.com/antchfx/xmlquery v1.2.2 // indirect
 	github.com/antchfx/xpath v1.1.4 // indirect
 	github.com/bregydoc/gtranslate v0.0.0-20191225024717-45b28d4fda86
+	github.com/chromedp/cdproto v0.0.0-20200116234248-4da64dd111ac
+	github.com/chromedp/chromedp v0.5.3
 	github.com/eko/gocache v1.0.0
 	github.com/go-redis/redis/v7 v7.0.0-beta.4
 	github.com/gobwas/glob v0.2.3 // indirect

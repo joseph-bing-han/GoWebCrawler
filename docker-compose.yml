@@ -17,6 +17,45 @@ services:
     networks:
       - back-tier
 
+  tor1:
+    image: dockage/tor-privoxy:latest
+    ports:
+      - "9010:9050" # Tor proxy
+      - "9011:9051" # Tor control port
+    networks:
+      - back-tier
+  tor2:
+    image: dockage/tor-privoxy:latest
+    ports:
+      - "9020:9050" # Tor proxy
+      - "9021:9051" # Tor control port
+    networks:
+      - back-tier
+
+  tor3:
+    image: dockage/tor-privoxy:latest
+    ports:
+      - "9030:9050" # Tor proxy
+      - "9031:9051" # Tor control port
+    networks:
+      - back-tier
+
+  tor4:
+    image: dockage/tor-privoxy:latest
+    ports:
+      - "9040:9050" # Tor proxy
+      - "9041:9051" # Tor control port
+    networks:
+      - back-tier
+
+  tor5:
+    image: dockage/tor-privoxy:latest
+    ports:
+      - "9050:9050" # Tor proxy
+      - "9051:9051" # Tor control port
+    networks:
+      - back-tier
+
 networks:
   back-tier:
     driver: bridge

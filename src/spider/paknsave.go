@@ -20,7 +20,7 @@ type Paknsave struct {
 
 func (w *Paknsave) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector()
+		w.cr = NewCollector(false)
 	}
 	w.url = url
 }
@@ -38,9 +38,9 @@ func (w *Paknsave) Run() error {
 				//log.Println("Add URL: " + url)
 				value, error := cache.Get(url)
 
-				//// todo: test
+				// todo: test
 				//value = ""
-				if error != nil && error.Error() == "redis: nil" && value.(string) == "" {
+				if (error == nil || (error != nil && error.Error() == "redis: nil")) && value.(string) == "" {
 					mq.Add(map[string]interface{}{"url": url})
 				}
 			}
@@ -52,7 +52,7 @@ func (w *Paknsave) Run() error {
 			titleZh, error := gtranslate.TranslateWithParams(
 				title,
 				gtranslate.TranslationParams{
-					From: "en_NZ",
+					From: "en",
 					To:   "zh",
 				},
 			)
@@ -78,7 +78,7 @@ func (w *Paknsave) Run() error {
 				// 在缓存系统中校验是否已经保存过了当天的数据
 				checkKey := time.Now().Format("20060102") + SPIDER_PAKNSAVE + productId
 				value, error := cache.Get(checkKey)
-				if error != nil && error.Error() == "redis: nil" && value.(string) == "" {
+				if (error == nil || (error != nil && error.Error() == "redis: nil")) && value.(string) == "" {
 
 					cache.Set(checkKey, 1)
 					var item model.Item
@@ -106,7 +106,7 @@ func (w *Paknsave) Run() error {
 }
 
 func init() {
-	// 在启动时注册WPaknsave类工厂
+	// 在启动时注册Paknsave类工厂
 	Register(SPIDER_PAKNSAVE, func() Spider {
 		return new(Paknsave)
 	})

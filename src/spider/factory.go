@@ -1,10 +1,12 @@
 package spider
 
 import (
+	"GoWebCrawler/src/utils/conf"
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/extensions"
 	"github.com/gocolly/colly/proxy"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -32,7 +34,7 @@ func Create(name string) Spider {
 	}
 }
 
-func NewCollector() *colly.Collector {
+func NewCollector(defaultProxy bool) *colly.Collector {
 	cr := colly.NewCollector()
 
 	// 使用随机User Agent
@@ -42,13 +44,22 @@ func NewCollector() *colly.Collector {
 	extensions.Referer(cr)
 
 	//// 初始化代理池
-	rp, err := proxy.RoundRobinProxySwitcher("socks5://xebni:xebni@13.239.73.54:1984")
+	var proxyIP [] string
+
+	if defaultProxy {
+		proxyIP = strings.Split(conf.Get("TOR_PROXY", "socks5://xebni:xebni@13.239.73.54:1984"), ",")
+	} else {
+		proxyIP = strings.Split(conf.Get("ALT_PROXY", "socks5://xebni:xebni@13.239.73.54:1984"), ",")
+	}
+
+	ps, err := proxy.RoundRobinProxySwitcher(proxyIP...)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
-	cr.SetProxyFunc(rp)
+	cr.SetProxyFunc(ps)
 
 	// 加了代理池，速度变慢，超时延长为1分钟
-	cr.SetRequestTimeout(time.Minute)
+	cr.SetRequestTimeout(time.Minute * 2)
 	return cr
 }

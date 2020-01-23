@@ -18,6 +18,7 @@ type Msg struct {
 func handler(ch chan Msg) {
 	rand.Seed(time.Now().UnixNano())
 	for {
+		// todo: test
 		time.Sleep(time.Second * time.Duration(12+rand.Intn(8)))
 		msg := <-ch
 		url := msg.url
@@ -25,16 +26,19 @@ func handler(ch chan Msg) {
 		//fmt.Println("Read URL:" + url)
 		// 判断是否已经查过了
 		value, error := cache.Get(url)
-		//// todo:test
+		// todo:test
 		//value = ""
-
-		if error != nil && error.Error() == "redis: nil" && value.(string) == "" {
+		//fmt.Println(error)
+		//fmt.Println(value)
+		if (error == nil || (error != nil && error.Error() == "redis: nil")) && value.(string) == "" {
 			cache.Set(url, 1)
 			var className string
 			if strings.Contains(url, "www.thewarehouse.co.nz") {
 				className = spider.SPIDER_WAREHOUSE
 			} else if strings.Contains(url, "www.paknsaveonline.co.nz") {
 				className = spider.SPIDER_PAKNSAVE
+			} else if strings.Contains(url, "www.kmart.co.nz") {
+				className = spider.SPIDER_KMART
 			}
 			spider := spider.Create(className)
 			//log.Println("Get URL: " + url)
@@ -51,7 +55,7 @@ func handler(ch chan Msg) {
 func main() {
 	cpuNum := runtime.NumCPU() * 2
 
-	//// todo: test
+	// todo: test
 	//cpuNum = 1
 
 	runtime.GOMAXPROCS(cpuNum)
