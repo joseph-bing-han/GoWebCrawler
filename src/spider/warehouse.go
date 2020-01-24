@@ -33,10 +33,11 @@ func (w *Warehouse) Run() error {
 			url := e.Attr("href")
 			if strings.Contains(url, "https://www.thewarehouse.co.nz") {
 				//fmt.Println(e.Attr("href"))
-
-				// todo
-				if !cache.Has(url)  {
-					cache.Set(url, 1)
+				checkKey := time.Now().Format("20060102") + SPIDER_WAREHOUSE + url
+				// todo: test
+				if !cache.Has(checkKey) {
+					cache.Set(checkKey, 1)
+					//log.Println("Add URL: " + url)
 					mq.Add(map[string]interface{}{"url": url})
 				}
 			}

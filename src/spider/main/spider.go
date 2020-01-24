@@ -20,15 +20,18 @@ func handler(ch chan Msg) {
 	for {
 		// todo: test
 		time.Sleep(time.Second * time.Duration(12+rand.Intn(8)))
+
 		msg := <-ch
 		url := msg.url
 		id := msg.id
 		//fmt.Println("Read URL:" + url)
 
-		// todo
+		// todo: test
+		//if true {
 		// 判断是否已经查过了
-		if !cache.Has(url) {
-			cache.Set(url, 1)
+		checkKey := time.Now().Format("20060102") + "RUN" + url
+		if !cache.Has(checkKey) {
+			cache.Set(checkKey, 1)
 			var className string
 			if strings.Contains(url, "www.thewarehouse.co.nz") {
 				className = spider.SPIDER_WAREHOUSE
@@ -36,6 +39,8 @@ func handler(ch chan Msg) {
 				className = spider.SPIDER_PAKNSAVE
 			} else if strings.Contains(url, "www.kmart.co.nz") {
 				className = spider.SPIDER_KMART
+			} else if strings.Contains(url, "shop.countdown.co.nz") {
+				className = spider.SPIDER_COUNTDOWN
 			}
 			spider := spider.Create(className)
 			//log.Println("Get URL: " + url)

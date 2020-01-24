@@ -47,9 +47,11 @@ func (w *Kmart) Run() error {
 			//fmt.Println("Get URL:" + url)
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
 				url = "https://www.kmart.co.nz" + url
-				//log.Println("Add URL: " + url)
+				checkKey := time.Now().Format("20060102") + SPIDER_KMART + url
 				// todo: test
-				if !cache.Has(url){
+				if !cache.Has(checkKey){
+					cache.Set(checkKey, 1)
+					//log.Println("Add URL: " + url)
 					mq.Add(map[string]interface{}{"url": url})
 				}
 			}
