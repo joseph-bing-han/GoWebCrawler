@@ -32,6 +32,14 @@ func Get(key interface{}) (interface{}, error) {
 	return _cache.Get(key)
 }
 
+func Has(key interface{}) bool {
+	value, error := Get(key)
+	if (error == nil || (error != nil && error.Error() == "redis: nil")) && value.(string) == "" {
+		return false
+	}
+	return true
+}
+
 func Set(key interface{}, object interface{}, options ...*store.Options) error {
 	if len(options) == 0 {
 		return _cache.Set(key, object, nil)

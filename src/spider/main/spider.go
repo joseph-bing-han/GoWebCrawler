@@ -24,13 +24,10 @@ func handler(ch chan Msg) {
 		url := msg.url
 		id := msg.id
 		//fmt.Println("Read URL:" + url)
+
+		// todo
 		// 判断是否已经查过了
-		value, error := cache.Get(url)
-		// todo:test
-		//value = ""
-		//fmt.Println(error)
-		//fmt.Println(value)
-		if (error == nil || (error != nil && error.Error() == "redis: nil")) && value.(string) == "" {
+		if !cache.Has(url) {
 			cache.Set(url, 1)
 			var className string
 			if strings.Contains(url, "www.thewarehouse.co.nz") {
