@@ -18,5 +18,5 @@ func main() {
 	//mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
 	//mq.Add(map[string]interface{}{"url": "https://www.paknsaveonline.co.nz/"})
 	//mq.Add(map[string]interface{}{"url": "https://www.kmart.co.nz/"})
-	mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/shop/browse/toys-party-needs?page=3"})
+	mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/"})
 }

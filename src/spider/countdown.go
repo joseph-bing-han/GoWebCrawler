@@ -4,11 +4,12 @@ import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
 	"GoWebCrawler/src/utils/mq"
+	gjson "encoding/json"
+	"github.com/bitly/go-simplejson"
 	"github.com/bregydoc/gtranslate"
 	"github.com/gocolly/colly"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -48,63 +49,70 @@ func (w *Countdown) Run() error {
 			}
 		})
 
-		// 处理商品页面数据
-		w.cr.OnHTML("body", func(e *colly.HTMLElement) {
-			productId := e.ChildAttr("input[name='stockcode']", "value")
+		w.cr.OnHTML("div#product-list", func(e *colly.HTMLElement) {
+			js := e.Text
+			matches := regexp.MustCompile(`PRODUCT_GRI.*`).FindAllString(js, 1)
+			if len(matches) == 1 {
+				matches = regexp.MustCompile(`\[\{.*\}\]`).FindAllString(matches[0], 1)
+				if len(matches) == 1 {
+					json, _ := simplejson.NewJson([]byte(matches[0])) //反序列化
+					nodes, _ := json.Array()
+					for _, node := range nodes {
+						product := node.(map[string]interface{})
 
-			if productId == "" {
-				return
-			}
+						title := product["name"].(string)
 
-			title := e.ChildText("h1")
-			if title == "" {
-				return
-			}
+						productId := product["sku"].(string)
 
-			titleZh, error := gtranslate.TranslateWithParams(
-				title,
-				gtranslate.TranslationParams{
-					From: "en",
-					To:   "zh",
-				},
-			)
-			if error != nil {
-				titleZh = title
-			}
+						if title != "" && productId != "" {
+							titleZh, error := gtranslate.TranslateWithParams(
+								title,
+								gtranslate.TranslationParams{
+									From: "en",
+									To:   "zh",
+								},
+							)
+							if error != nil {
+								titleZh = title
+							}
 
-			data := strings.Split(e.ChildText("span.price"), " ")
-			price := ""
-			unit := ""
-			if len(data) > 1 {
-				price = strings.Replace(data[0], "$", "", -1)
-				unit = data[1]
-			}
-			image := "https://shop.countdown.co.nz" + e.ChildAttr("img.product-image", "src")
+							priceNode := product["price"].(map[string]interface{})
 
-			//fmt.Println(title + " > " + productId + " > " + price + "/" + unit + " ---> " + image)
+							price, _ := priceNode["salePrice"].(gjson.Number).Float64()
 
-			if productId != "" && price != "" {
-				// 在缓存系统中校验是否已经保存过了当天的数据
-				checkKey := time.Now().Format("20060102") + SPIDER_COUNTDOWN + productId
-				if !cache.Has(checkKey) {
+							unit := product["unit"].(string)
 
-					cache.Set(checkKey, 1)
-					var item model.Item
-					if model.DB.Where("website = ? AND product_id = ?", SPIDER_COUNTDOWN, productId).First(&item).RecordNotFound() {
-						// 没找到旧数据时，新建商品记录
-						item.Image = image
-						item.Unit = unit
-						item.ProductID = productId
-						item.Title = title
-						item.TitleZh = titleZh
-						item.Website = SPIDER_COUNTDOWN
-						model.DB.Create(&item)
+							imageNode := product["images"].(map[string]interface{})
+
+							image := imageNode["big"].(string)
+							//strPrice := fmt.Sprintf("%f", price)
+							//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + strPrice + "/" + unit + " ---> " + image)
+
+							// 在缓存系统中校验是否已经保存过了当天的数据
+							checkKey := time.Now().Format("20060102") + SPIDER_COUNTDOWN + productId
+							if !cache.Has(checkKey) {
+
+								cache.Set(checkKey, 1)
+								var item model.Item
+								if model.DB.Where("website = ? AND product_id = ?", SPIDER_COUNTDOWN, productId).First(&item).RecordNotFound() {
+									// 没找到旧数据时，新建商品记录
+									item.Image = image
+									item.Unit = unit
+									item.ProductID = productId
+									item.Title = title
+									item.TitleZh = titleZh
+									item.Website = SPIDER_COUNTDOWN
+									model.DB.Create(&item)
+								}
+								model.DB.Model(&item).Association("Prices").Append(model.Price{Price: price})
+							}
+						}
+
 					}
 
-					flPrice, _ := strconv.ParseFloat(price, 10)
-					model.DB.Model(&item).Association("Prices").Append(model.Price{Price: flPrice})
 				}
 			}
+
 		})
 		log.Println("Countdown Run: " + w.url)
 		w.cr.Visit(w.url)

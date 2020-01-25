@@ -9,6 +9,7 @@ require (
 	github.com/antchfx/htmlquery v1.2.1 // indirect
 	github.com/antchfx/xmlquery v1.2.2 // indirect
 	github.com/antchfx/xpath v1.1.4 // indirect
+	github.com/bitly/go-simplejson v0.5.0
 	github.com/bregydoc/gtranslate v0.0.0-20191225024717-45b28d4fda86
 	github.com/chromedp/cdproto v0.0.0-20200116234248-4da64dd111ac
 	github.com/chromedp/chromedp v0.5.3
