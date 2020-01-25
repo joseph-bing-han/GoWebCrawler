@@ -49,7 +49,7 @@ func (w *Kmart) Run() error {
 				url = "https://www.kmart.co.nz" + url
 				checkKey := time.Now().Format("20060102") + SPIDER_KMART + url
 				// todo: test
-				if !cache.Has(checkKey){
+				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
 					//log.Println("Add URL: " + url)
 					mq.Add(map[string]interface{}{"url": url})
@@ -81,6 +81,7 @@ func (w *Kmart) Run() error {
 				titleZh = title
 			}
 
+			itemId := e.ChildText("h7")
 			price := e.ChildAttr("span.price", "aria-label")
 			price = strings.Replace(price, "$ ", "", -1)
 			image := e.ChildAttr("img.mainImg", "src")
@@ -97,6 +98,7 @@ func (w *Kmart) Run() error {
 						// 没找到旧数据时，新建商品记录
 						item.Image = image
 						item.ProductID = productId
+						item.InternalID = itemId
 						item.Title = title
 						item.TitleZh = titleZh
 						item.Website = SPIDER_KMART

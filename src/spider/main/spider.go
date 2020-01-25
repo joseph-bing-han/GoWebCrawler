@@ -41,6 +41,8 @@ func handler(ch chan Msg) {
 				className = spider.SPIDER_KMART
 			} else if strings.Contains(url, "shop.countdown.co.nz") {
 				className = spider.SPIDER_COUNTDOWN
+			} else if strings.Contains(url, "www.ishopnewworld.co.nz") {
+				className = spider.SPIDER_NEWWORLD
 			}
 			spider := spider.Create(className)
 			//log.Println("Get URL: " + url)

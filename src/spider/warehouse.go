@@ -46,6 +46,10 @@ func (w *Warehouse) Run() error {
 		// 处理商品页面数据
 		w.cr.OnHTML("div.pdp-main", func(e *colly.HTMLElement) {
 			title := e.ChildText(".product-name.hidden-phone")
+			if title == "" {
+				return
+			}
+
 			titleZh, error := gtranslate.TranslateWithParams(
 				title,
 				gtranslate.TranslationParams{

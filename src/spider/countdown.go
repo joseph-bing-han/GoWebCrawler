@@ -62,7 +62,7 @@ func (w *Countdown) Run() error {
 
 						title := product["name"].(string)
 
-						productId := product["sku"].(string)
+						productId := product["slug"].(string)
 
 						if title != "" && productId != "" {
 							titleZh, error := gtranslate.TranslateWithParams(
@@ -75,6 +75,8 @@ func (w *Countdown) Run() error {
 							if error != nil {
 								titleZh = title
 							}
+
+							itemId := product["sku"].(string)
 
 							priceNode := product["price"].(map[string]interface{})
 
@@ -99,6 +101,7 @@ func (w *Countdown) Run() error {
 									item.Image = image
 									item.Unit = unit
 									item.ProductID = productId
+									item.InternalID = itemId
 									item.Title = title
 									item.TitleZh = titleZh
 									item.Website = SPIDER_COUNTDOWN

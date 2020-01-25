@@ -43,7 +43,7 @@ func NewCollector(defaultProxy bool) *colly.Collector {
 	// 添加referer防盗链
 	extensions.Referer(cr)
 
-	//// 初始化代理池
+	// 初始化代理池
 	var proxyIP [] string
 
 	if defaultProxy {
@@ -59,7 +59,7 @@ func NewCollector(defaultProxy bool) *colly.Collector {
 	}
 	cr.SetProxyFunc(ps)
 
-	// 加了代理池，速度变慢，超时延长为1分钟
+	// 加了代理池，速度变慢，超时延长为2分钟
 	cr.SetRequestTimeout(time.Minute * 2)
 	return cr
 }
