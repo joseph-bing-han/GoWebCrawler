@@ -75,6 +75,8 @@ func main() {
 				id:  id,
 				url: messages["url"].(string),
 			}
+		} else {
+			time.Sleep(time.Second)
 		}
 	}
 
