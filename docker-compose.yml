@@ -2,6 +2,7 @@ version: '3'
 services:
   redis:
     image: redis:latest
+    restart: always
     ports:
       - 6379:6379
     networks:
@@ -19,6 +20,7 @@ services:
 
   tor1:
     image: dockage/tor-privoxy:latest
+    restart: always
     ports:
       - "9010:9050" # Tor proxy
       - "9011:9051" # Tor control port
@@ -26,6 +28,7 @@ services:
       - back-tier
   tor2:
     image: dockage/tor-privoxy:latest
+    restart: always
     ports:
       - "9020:9050" # Tor proxy
       - "9021:9051" # Tor control port
@@ -34,6 +37,7 @@ services:
 
   tor3:
     image: dockage/tor-privoxy:latest
+    restart: always
     ports:
       - "9030:9050" # Tor proxy
       - "9031:9051" # Tor control port
@@ -42,6 +46,7 @@ services:
 
   tor4:
     image: dockage/tor-privoxy:latest
+    restart: always
     ports:
       - "9040:9050" # Tor proxy
       - "9041:9051" # Tor control port
@@ -50,6 +55,7 @@ services:
 
   tor5:
     image: dockage/tor-privoxy:latest
+    restart: always
     ports:
       - "9050:9050" # Tor proxy
       - "9051:9051" # Tor control port

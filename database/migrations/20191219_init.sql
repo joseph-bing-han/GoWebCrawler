@@ -6,8 +6,8 @@ CREATE TABLE items
 (
     id          bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
     website     varchar(20)         NULL     DEFAULT NULL,
-    product_id  varchar(50)         NULL     DEFAULT NULL,
-    internal_id varchar(50)         NULL     DEFAULT NULL,
+    product_id  varchar(255)         NULL     DEFAULT NULL,
+    internal_id varchar(255)         NULL     DEFAULT NULL,
     title       varchar(255)        NOT NULL,
     title_zh       varchar(255)        NOT NULL,
     unit        varchar(30)         NULL     DEFAULT NULL,

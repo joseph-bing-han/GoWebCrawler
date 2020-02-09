@@ -20,7 +20,7 @@ type NewWorld struct {
 
 func (w *NewWorld) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector(true)
+		w.cr = NewCollector(false)
 	}
 	w.url = url
 }
