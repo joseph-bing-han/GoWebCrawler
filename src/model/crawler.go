@@ -13,6 +13,7 @@ var DB *gorm.DB
 type Price struct {
 	ID        int64     `gorm:"primary_key;column:id;type:bigint(20) unsigned;not null" json:"-"`
 	ItemID    int64     `gorm:"index;column:item_id;type:bigint(20) unsigned" json:"item_id"`
+	Branch    string    `gorm:"column:branch;type:varchar(100)" json:"branch"`
 	Price     float64   `gorm:"column:price;type:decimal(10,2);not null" json:"price"`
 	CreatedAt time.Time `gorm:"column:created_at;type:timestamp;not null" json:"created_at"`
 }
@@ -27,6 +28,7 @@ type Item struct {
 	TitleZh    string `gorm:"column:title_zh;type:varchar(255);not null" json:"title_zh"`
 	Unit       string `gorm:"column:unit;type:varchar(30)" json:"unit"`
 	Image      string `gorm:"column:image;type:varchar(255)" json:"image"`
+	Url        string `gorm:"column:url;type:varchar(255)" json:"url"`
 	Prices     []Price
 }
 

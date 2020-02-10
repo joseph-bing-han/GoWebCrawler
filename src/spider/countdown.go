@@ -87,6 +87,8 @@ func (w *Countdown) Run() error {
 							imageNode := product["images"].(map[string]interface{})
 
 							image := imageNode["big"].(string)
+							image = "https://shop.countdown.co.nz" + image
+
 							//strPrice := fmt.Sprintf("%f", price)
 							//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + strPrice + "/" + unit + " ---> " + image)
 

@@ -6,11 +6,12 @@ CREATE TABLE items
 (
     id          bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
     website     varchar(20)         NULL     DEFAULT NULL,
-    product_id  varchar(255)         NULL     DEFAULT NULL,
-    internal_id varchar(255)         NULL     DEFAULT NULL,
+    product_id  varchar(255)        NULL     DEFAULT NULL,
+    internal_id varchar(255)        NULL     DEFAULT NULL,
     title       varchar(255)        NOT NULL,
-    title_zh       varchar(255)        NOT NULL,
+    title_zh    varchar(255)        NOT NULL,
     unit        varchar(30)         NULL     DEFAULT NULL,
+    url         varchar(255)        NULL     DEFAULT NULL,
     image       varchar(255)        NULL     DEFAULT NULL,
     created_at  timestamp           NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  timestamp           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -25,15 +26,16 @@ CREATE UNIQUE INDEX item_production_id ON items (website, product_id);
 -- 创建价格记录表
 CREATE TABLE prices
 (
-    id         bigint(20) unsigned not null auto_increment,
+    id         bigint(20) unsigned NOT NULL auto_increment,
     item_id    bigint(20) unsigned,
-    price      decimal(10, 2)      not null default 0,
-    created_at timestamp           not null default current_timestamp,
+    branch      varchar(100)        NULL     DEFAULT NULL,
+    price      decimal(10, 2)      NOT NULL DEFAULT 0,
+    created_at timestamp           NOT NULL DEFAULT current_timestamp,
     constraint item_price_pk
         primary key (id)
-)ENGINE = InnoDB
- DEFAULT CHARSET = utf8mb4
- COLLATE = utf8mb4_unicode_ci;
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;
 ALTER TABLE prices
     ADD CONSTRAINT price_item_id_fk
         FOREIGN KEY (item_id) REFERENCES items (id)
