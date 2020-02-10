@@ -38,6 +38,9 @@ func (w *Countdown) Run() error {
 				if strings.Contains(url, "/shop/recipe") {
 					return
 				}
+				if strings.Contains(url, "/shop/productdetails") {
+					return
+				}
 				url = "https://shop.countdown.co.nz" + url
 				checkKey := time.Now().Format("20060102") + SPIDER_COUNTDOWN + url
 				// todo: test
@@ -59,7 +62,6 @@ func (w *Countdown) Run() error {
 					nodes, _ := json.Array()
 					for _, node := range nodes {
 						product := node.(map[string]interface{})
-
 						title := product["name"].(string)
 
 						productId := product["slug"].(string)
@@ -68,8 +70,9 @@ func (w *Countdown) Run() error {
 							titleZh, error := gtranslate.TranslateWithParams(
 								title,
 								gtranslate.TranslationParams{
-									From: "en",
-									To:   "zh",
+									From:  "en",
+									To:    "zh",
+									Delay: time.Second * 2,
 								},
 							)
 							if error != nil {
@@ -89,6 +92,7 @@ func (w *Countdown) Run() error {
 							image := imageNode["big"].(string)
 							image = "https://shop.countdown.co.nz" + image
 
+							url := "https://shop.countdown.co.nz/shop/productdetails?stockcode=" + itemId + "&name=" + productId
 							//strPrice := fmt.Sprintf("%f", price)
 							//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + strPrice + "/" + unit + " ---> " + image)
 
@@ -107,6 +111,7 @@ func (w *Countdown) Run() error {
 									item.Title = title
 									item.TitleZh = titleZh
 									item.Website = SPIDER_COUNTDOWN
+									item.Url = url
 									model.DB.Create(&item)
 								}
 								model.DB.Model(&item).Association("Prices").Append(model.Price{Price: price})

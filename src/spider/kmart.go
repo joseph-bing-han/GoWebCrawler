@@ -73,8 +73,9 @@ func (w *Kmart) Run() error {
 			titleZh, error := gtranslate.TranslateWithParams(
 				title,
 				gtranslate.TranslationParams{
-					From: "en",
-					To:   "zh",
+					From:  "en",
+					To:    "zh",
+					Delay: time.Second * 2,
 				},
 			)
 			if error != nil {
@@ -86,6 +87,9 @@ func (w *Kmart) Run() error {
 			price = strings.Replace(price, "$ ", "", -1)
 			image := e.ChildAttr("img.mainImg", "src")
 			image = "https://www.kmart.co.nz" + image
+
+			url := e.Request.URL.String()
+
 			//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + price + " ---> " + image)
 			if productId != "" && price != "" {
 				// 在缓存系统中校验是否已经保存过了当天的数据
@@ -102,6 +106,7 @@ func (w *Kmart) Run() error {
 						item.Title = title
 						item.TitleZh = titleZh
 						item.Website = SPIDER_KMART
+						item.Url = url
 						model.DB.Create(&item)
 					}
 

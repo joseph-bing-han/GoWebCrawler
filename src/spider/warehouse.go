@@ -55,6 +55,7 @@ func (w *Warehouse) Run() error {
 				gtranslate.TranslationParams{
 					From: "en",
 					To:   "zh",
+					Delay: time.Second * 2,
 				},
 			)
 			if error != nil {
@@ -64,6 +65,9 @@ func (w *Warehouse) Run() error {
 			price := e.ChildAttr(".pv-price", "data-price")
 			productId := e.ChildText("div.row-product-details > div.product-description > div.product-number > span.product-id")
 			image := e.ChildAttr(".primary-image", "src")
+
+			url := e.Request.URL.String()
+
 			if productId != "" && price != "" {
 
 				// 在缓存系统中校验是否已经保存过了当天的数据
@@ -80,6 +84,7 @@ func (w *Warehouse) Run() error {
 						item.Title = title
 						item.TitleZh = titleZh
 						item.Website = SPIDER_WAREHOUSE
+						item.Url = url
 						model.DB.Create(&item)
 					}
 

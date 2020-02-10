@@ -58,6 +58,7 @@ func (w *Paknsave) Run() error {
 				gtranslate.TranslationParams{
 					From: "en",
 					To:   "zh",
+					Delay: time.Second * 2,
 				},
 			)
 			if error != nil {
@@ -75,6 +76,8 @@ func (w *Paknsave) Run() error {
 			unit := e.ChildText("span.fs-price-lockup__per")
 			imageStyle := e.ChildAttr("div.fs-product-image__inner", "style")
 			image := regexp.MustCompile(`http.[^)]+`).FindString(imageStyle)
+
+			url := e.Request.URL.String()
 
 			//fmt.Println(title + " > " + productId + " > " + price + "/" + unit + " ---> " + image)
 
@@ -94,6 +97,7 @@ func (w *Paknsave) Run() error {
 						item.TitleZh = titleZh
 						item.Website = SPIDER_PAKNSAVE
 						item.Unit = unit
+						item.Url = url
 						model.DB.Create(&item)
 					}
 

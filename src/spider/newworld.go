@@ -65,8 +65,9 @@ func (w *NewWorld) Run() error {
 			titleZh, error := gtranslate.TranslateWithParams(
 				title,
 				gtranslate.TranslationParams{
-					From: "en",
-					To:   "zh",
+					From:  "en",
+					To:    "zh",
+					Delay: time.Second * 2,
 				},
 			)
 			if error != nil {
@@ -76,6 +77,8 @@ func (w *NewWorld) Run() error {
 			unit := e.ChildText("span.fs-price-lockup__per")
 			imageStyle := e.ChildAttr("div.fs-product-image__inner", "style")
 			image := regexp.MustCompile(`http.[^)]+`).FindString(imageStyle)
+
+			url := e.Request.URL.String()
 
 			//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + price + "/" + unit + " ---> " + image)
 			if productId != "" && price != "" {
@@ -94,6 +97,7 @@ func (w *NewWorld) Run() error {
 						item.TitleZh = titleZh
 						item.Unit = unit
 						item.Website = SPIDER_NEWWORLD
+						item.Url = url
 						model.DB.Create(&item)
 					}
 
