@@ -3,7 +3,6 @@ package spider
 import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
-	"GoWebCrawler/src/utils/mq"
 	"encoding/json"
 	"github.com/bregydoc/gtranslate"
 	"github.com/gocolly/colly"
@@ -13,7 +12,7 @@ import (
 	"time"
 )
 
-var STORES = [...]string{
+var PAKNSAVE_STORES = [...]string{
 	"browser_nearest_store={\"UserLat\":\"-41.224456\",\"UserLng\":\"174.872537\",\"IsSuccess\":true}",
 	"browser_nearest_store={\"UserLat\":\"-37.03242\",\"UserLng\":\"174.867278\",\"IsSuccess\":true}",
 	"browser_nearest_store={\"UserLat\":\"-36.620413\",\"UserLng\":\"174.672975\",\"IsSuccess\":true}",
@@ -55,7 +54,7 @@ var STORES = [...]string{
 	"browser_nearest_store={\"UserLat\":\"-39.590947\",\"UserLng\":\"174.283801\",\"IsSuccess\":true}",
 }
 
-var BRANCH = [...] string{
+var PAKNSAVE_BRANCH = [...] string{
 	"PAK'nSAVE Lower Hutt (Brunswick Street, Hutt Central, Lower Hutt, 5010)",
 	"PAK'nSAVE Royal Oak (691 Manukau Road, Royal Oak, Auckland, 1023)",
 	"PAK'nSAVE Te Awamutu (650-670 Cambridge Road, Te Awamutu, 3800)",
@@ -117,7 +116,7 @@ func (w *Paknsave) Run() error {
 
 		w.cr.OnRequest(func(request *colly.Request) {
 			if w.branch == -1 {
-				cookie := STORES[0]
+				cookie := PAKNSAVE_STORES[0]
 				request.Headers.Set("cookie", cookie)
 			}
 		})
@@ -134,7 +133,7 @@ func (w *Paknsave) Run() error {
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
 					//log.Println("Add URL: " + url)
-					mq.Add(map[string]interface{}{"url": url})
+					//mq.Add(map[string]interface{}{"url": url})
 				}
 			}
 		})
@@ -143,8 +142,8 @@ func (w *Paknsave) Run() error {
 		w.cr.OnHTML(".fs-product-detail,.js-breadcrumbs", func(e *colly.HTMLElement) {
 
 			defer func() {
-				if len(STORES) > w.branch && w.branch >= 0 {
-					cookie := STORES[w.branch]
+				if len(PAKNSAVE_STORES) > w.branch && w.branch >= 0 {
+					cookie := PAKNSAVE_STORES[w.branch]
 					w.branch++
 					e.Request.Headers.Set("cookie", cookie)
 					e.Request.Retry()
@@ -203,14 +202,28 @@ func (w *Paknsave) Run() error {
 						model.DB.Create(&item)
 					}
 
-					branch := BRANCH[0]
+					branch := PAKNSAVE_BRANCH[0]
 					if w.branch >= 0 {
-						branch = BRANCH[w.branch]
+						branch = PAKNSAVE_BRANCH[w.branch]
 					}
 
 					model.DB.Model(&item).Association("Prices").Append(model.Price{Price: flPrice, Branch: branch})
+				} else {
+					var item model.Item
+					if !model.DB.Where("website = ? AND product_id = ?", SPIDER_PAKNSAVE, productId).First(&item).RecordNotFound() {
+						// 找到旧数据时，更新商品价格记录
+						var price model.Price
+						if !model.DB.Where("item_id = ? AND created_at >= ?", item.ID, time.Now().Format("2006-01-01 00:00:00")).First(&price).RecordNotFound() {
+							branch := PAKNSAVE_BRANCH[0]
+							if w.branch > 0 {
+								branch = PAKNSAVE_BRANCH[w.branch-1]
+							}
+							price.Price = flPrice
+							price.Branch = branch
+							model.DB.Save(&price)
+						}
+					}
 				}
-
 				if w.branch == -1 {
 					w.branch++
 				}

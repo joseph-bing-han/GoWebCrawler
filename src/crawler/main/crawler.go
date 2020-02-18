@@ -1,6 +1,9 @@
 package main
 
-import "GoWebCrawler/src/utils/mq"
+import (
+	"GoWebCrawler/src/utils/mq"
+	"time"
+)
 
 func main() {
 
@@ -20,21 +23,21 @@ func main() {
 	//}
 
 	// 添加3次网址，防止有遗漏的情况
-	//mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
 	mq.Add(map[string]interface{}{"url": "https://www.paknsaveonline.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.kmart.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.ishopnewworld.co.nz/"})
-	//time.Sleep(time.Second * 20)
-	//mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.paknsaveonline.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.kmart.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.ishopnewworld.co.nz/"})
-	//time.Sleep(time.Second * 20)
-	//mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.paknsaveonline.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.kmart.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/"})
-	//mq.Add(map[string]interface{}{"url": "https://www.ishopnewworld.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.kmart.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.ishopnewworld.co.nz/"})
+	time.Sleep(time.Second * 20)
+	mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.paknsaveonline.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.kmart.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.ishopnewworld.co.nz/"})
+	time.Sleep(time.Second * 20)
+	mq.Add(map[string]interface{}{"url": "https://www.thewarehouse.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.paknsaveonline.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.kmart.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://shop.countdown.co.nz/"})
+	mq.Add(map[string]interface{}{"url": "https://www.ishopnewworld.co.nz/"})
 }
