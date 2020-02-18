@@ -28,7 +28,7 @@ CREATE TABLE prices
 (
     id         bigint(20) unsigned NOT NULL auto_increment,
     item_id    bigint(20) unsigned,
-    branch      varchar(100)        NULL     DEFAULT NULL,
+    branch      varchar(255)        NULL     DEFAULT NULL,
     price      decimal(10, 2)      NOT NULL DEFAULT 0,
     created_at timestamp           NOT NULL DEFAULT current_timestamp,
     constraint item_price_pk
