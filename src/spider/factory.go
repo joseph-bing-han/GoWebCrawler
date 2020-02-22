@@ -34,7 +34,7 @@ func Create(name string) Spider {
 	}
 }
 
-func NewCollector(defaultProxy bool) *colly.Collector {
+func NewCollector() *colly.Collector {
 	cr := colly.NewCollector()
 
 	// 使用随机User Agent
@@ -46,11 +46,7 @@ func NewCollector(defaultProxy bool) *colly.Collector {
 	// 初始化代理池
 	var proxyIP [] string
 
-	if defaultProxy {
-		proxyIP = strings.Split(conf.Get("TOR_PROXY", "socks5://xebni:xebni@13.239.73.54:1984"), ",")
-	} else {
-		proxyIP = strings.Split(conf.Get("ALT_PROXY", "socks5://xebni:xebni@13.239.73.54:1984"), ",")
-	}
+	proxyIP = strings.Split(conf.Get("TOR_PROXY", ""), ",")
 
 	ps, err := proxy.RoundRobinProxySwitcher(proxyIP...)
 

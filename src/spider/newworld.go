@@ -5,6 +5,7 @@ import (
 	"GoWebCrawler/src/utils/cache"
 	"GoWebCrawler/src/utils/mq"
 	"encoding/json"
+	"fmt"
 	"github.com/bregydoc/gtranslate"
 	"github.com/gocolly/colly"
 	"log"
@@ -216,8 +217,9 @@ type NewWorld struct {
 
 func (w *NewWorld) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector(false)
+		w.cr = NewCollector()
 	}
+	w.cr.UserAgent = "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0"
 	w.url = url
 }
 
@@ -236,7 +238,7 @@ func (w *NewWorld) Run() error {
 			url := e.Attr("href")
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
 				url = "https://www.ishopnewworld.co.nz" + url
-				checkKey := time.Now().Format("20060102") + SPIDER_NEWWORLD + url
+				checkKey := SPIDER_NEWWORLD + url
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
@@ -295,7 +297,7 @@ func (w *NewWorld) Run() error {
 			if productId != "" && price != "" && flPrice <= w.lowPrice {
 				//fmt.Println(w.branch, ">>>"+title+"("+titleZh+") > "+productId+" > "+price+"/"+unit+" ---> "+image)
 				// 在缓存系统中校验是否已经保存过了当天的数据
-				checkKey := time.Now().Format("20060102") + SPIDER_NEWWORLD + productId
+				checkKey := SPIDER_NEWWORLD + productId
 				if !cache.Has(checkKey) {
 
 					cache.Set(checkKey, 1)
@@ -342,7 +344,14 @@ func (w *NewWorld) Run() error {
 				w.lowPrice = flPrice
 			}
 		})
+		w.cr.OnResponse(func(response *colly.Response) {
+			fmt.Println(string(response.Body))
+		})
 
+		w.cr.OnError(func(response *colly.Response, err error) {
+			log.Println("ERROR:", string(response.Body))
+			log.Println("ERROR", err.Error())
+		})
 		log.Println("PaknSave Run: " + w.url)
 		w.branch = -1
 		w.lowPrice = 99999

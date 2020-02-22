@@ -21,7 +21,7 @@ type Countdown struct {
 
 func (w *Countdown) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector(true)
+		w.cr = NewCollector()
 	}
 	w.url = url
 }
@@ -42,7 +42,7 @@ func (w *Countdown) Run() error {
 					return
 				}
 				url = "https://shop.countdown.co.nz" + url
-				checkKey := time.Now().Format("20060102") + SPIDER_COUNTDOWN + url
+				checkKey :=  SPIDER_COUNTDOWN + url
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
@@ -97,7 +97,7 @@ func (w *Countdown) Run() error {
 							//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + strPrice + "/" + unit + " ---> " + image)
 
 							// 在缓存系统中校验是否已经保存过了当天的数据
-							checkKey := time.Now().Format("20060102") + SPIDER_COUNTDOWN + productId
+							checkKey :=  SPIDER_COUNTDOWN + productId
 							if !cache.Has(checkKey) {
 
 								cache.Set(checkKey, 1)

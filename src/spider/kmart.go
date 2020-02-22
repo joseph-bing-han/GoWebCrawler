@@ -28,7 +28,7 @@ func (k *Kmart) SetCookies(cookies string) {
 
 func (w *Kmart) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector(true)
+		w.cr = NewCollector()
 	}
 	w.url = url
 }
@@ -47,7 +47,7 @@ func (w *Kmart) Run() error {
 			//fmt.Println("Get URL:" + url)
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
 				url = "https://www.kmart.co.nz" + url
-				checkKey := time.Now().Format("20060102") + SPIDER_KMART + url
+				checkKey :=  SPIDER_KMART + url
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
@@ -93,7 +93,7 @@ func (w *Kmart) Run() error {
 			//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + price + " ---> " + image)
 			if productId != "" && price != "" {
 				// 在缓存系统中校验是否已经保存过了当天的数据
-				checkKey := time.Now().Format("20060102") + SPIDER_KMART + productId
+				checkKey :=  SPIDER_KMART + productId
 				if !cache.Has(checkKey) {
 
 					cache.Set(checkKey, 1)

@@ -19,7 +19,7 @@ type Warehouse struct {
 
 func (w *Warehouse) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector(true)
+		w.cr = NewCollector()
 	}
 	w.url = url
 }
@@ -33,7 +33,7 @@ func (w *Warehouse) Run() error {
 			url := e.Attr("href")
 			if strings.Contains(url, "https://www.thewarehouse.co.nz") {
 				//fmt.Println(e.Attr("href"))
-				checkKey := time.Now().Format("20060102") + SPIDER_WAREHOUSE + url
+				checkKey := SPIDER_WAREHOUSE + url
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
@@ -53,8 +53,8 @@ func (w *Warehouse) Run() error {
 			titleZh, error := gtranslate.TranslateWithParams(
 				title,
 				gtranslate.TranslationParams{
-					From: "en",
-					To:   "zh",
+					From:  "en",
+					To:    "zh",
 					Delay: time.Second * 2,
 				},
 			)
@@ -71,7 +71,7 @@ func (w *Warehouse) Run() error {
 			if productId != "" && price != "" {
 
 				// 在缓存系统中校验是否已经保存过了当天的数据
-				checkKey := time.Now().Format("20060102") + SPIDER_WAREHOUSE + productId
+				checkKey := SPIDER_WAREHOUSE + productId
 				if !cache.Has(checkKey) {
 
 					cache.Set(checkKey, 1)

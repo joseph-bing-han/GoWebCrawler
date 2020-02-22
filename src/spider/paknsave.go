@@ -3,7 +3,9 @@ package spider
 import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
+	"GoWebCrawler/src/utils/mq"
 	"encoding/json"
+	"fmt"
 	"github.com/bregydoc/gtranslate"
 	"github.com/gocolly/colly"
 	"log"
@@ -101,11 +103,12 @@ type Paknsave struct {
 	url      string
 	branch   int
 	lowPrice float64
+	cookie   string
 }
 
 func (w *Paknsave) SetURL(url string) {
 	if w.cr == nil {
-		w.cr = NewCollector(false)
+		w.cr = NewCollector()
 	}
 	w.url = url
 }
@@ -127,13 +130,13 @@ func (w *Paknsave) Run() error {
 			//fmt.Println("Get URL:" + url)
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
 				url = "https://www.paknsaveonline.co.nz" + url
-				checkKey := time.Now().Format("20060102") + SPIDER_PAKNSAVE + url
+				checkKey := SPIDER_PAKNSAVE + url
 				// todo: test
 				//value = ""
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
 					//log.Println("Add URL: " + url)
-					//mq.Add(map[string]interface{}{"url": url})
+					mq.Add(map[string]interface{}{"url": url})
 				}
 			}
 		})
@@ -184,7 +187,7 @@ func (w *Paknsave) Run() error {
 			flPrice, _ := strconv.ParseFloat(price, 10)
 			if productId != "" && price != "" && flPrice <= w.lowPrice {
 				// 在缓存系统中校验是否已经保存过了当天的数据
-				checkKey := time.Now().Format("20060102") + SPIDER_PAKNSAVE + productId
+				checkKey := SPIDER_PAKNSAVE + productId
 				if !cache.Has(checkKey) {
 
 					cache.Set(checkKey, 1)
@@ -229,6 +232,14 @@ func (w *Paknsave) Run() error {
 				}
 				w.lowPrice = flPrice
 			}
+		})
+
+		w.cr.OnResponse(func(response *colly.Response) {
+			fmt.Println(string(response.Body))
+		})
+
+		w.cr.OnError(func(response *colly.Response, err error) {
+			log.Println("ERROR", err.Error())
 		})
 
 		log.Println("PaknSave Run: " + w.url)

@@ -29,7 +29,7 @@ func handler(ch chan Msg) {
 		// todo: test
 		//if true {
 		// 判断是否已经查过了
-		checkKey := time.Now().Format("20060102") + "RUN" + url
+		checkKey :=  "RUN" + url
 		if !cache.Has(checkKey) {
 			cache.Set(checkKey, 1)
 			var className string
