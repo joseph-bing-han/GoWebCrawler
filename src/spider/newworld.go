@@ -5,7 +5,6 @@ import (
 	"GoWebCrawler/src/utils/cache"
 	"GoWebCrawler/src/utils/mq"
 	"encoding/json"
-	"fmt"
 	"github.com/bregydoc/gtranslate"
 	"github.com/gocolly/colly"
 	"log"
@@ -111,7 +110,7 @@ var NEWWORLD_STORES = [...]string{
 	"browser_nearest_store={\"UserLat\":\"-37.688946\",\"UserLng\":\"176.1347\",\"IsSuccess\":true}",
 }
 
-var NEWWORLD_BRANCH = [...] string{
+var NEWWORLD_BRANCH = [...]string{
 	"New World Ngaruawahia (7 Galileo Street, Ngaruawahia, 3720)",
 	"New World Kapiti (159 Kapiti Road, Paraparaumu, 5032)",
 	"New World Southmall (187 Great South Road, Manurewa, Auckland, 2102)",
@@ -213,14 +212,15 @@ type NewWorld struct {
 	url      string
 	branch   int
 	lowPrice float64
+	isUpdate bool
 }
 
-func (w *NewWorld) SetURL(url string) {
+func (w *NewWorld) SetURL(url string,isUpdate bool) {
 	if w.cr == nil {
-		w.cr = NewCollector()
+		w.cr = NewCollector(false)
 	}
-	w.cr.UserAgent = "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0"
 	w.url = url
+	w.isUpdate = isUpdate
 }
 
 func (w *NewWorld) Run() error {
@@ -235,6 +235,9 @@ func (w *NewWorld) Run() error {
 		})
 		//处理所有链接
 		w.cr.OnHTML("a[href]", func(e *colly.HTMLElement) {
+			if w.isUpdate {
+				return
+			}
 			url := e.Attr("href")
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
 				url = "https://www.ishopnewworld.co.nz" + url
@@ -242,8 +245,8 @@ func (w *NewWorld) Run() error {
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
-					//log.Println("Add URL: " + url)
-					mq.Add(map[string]interface{}{"url": url})
+					log.Println("[INFO]", "["+SPIDER_NEWWORLD+"]", "Get URL: "+url)
+					mq.Add(map[string]interface{}{"url": url, "update": false})
 				}
 			}
 		})
@@ -275,17 +278,22 @@ func (w *NewWorld) Run() error {
 				return
 			}
 
-			titleZh, error := gtranslate.TranslateWithParams(
-				title,
-				gtranslate.TranslationParams{
-					From:  "en",
-					To:    "zh",
-					Delay: time.Second * 2,
-				},
-			)
-			if error != nil {
-				titleZh = title
+			titleZh := title
+			if !w.isUpdate {
+				var err error
+				titleZh, err = gtranslate.TranslateWithParams(
+					title,
+					gtranslate.TranslationParams{
+						From:  "en",
+						To:    "zh",
+						Delay: time.Second * 2,
+					},
+				)
+				if err != nil {
+					titleZh = title
+				}
 			}
+
 			price := e.ChildText("span.fs-price-lockup__dollars") + "." + e.ChildText("span.fs-price-lockup__cents")
 			unit := e.ChildText("span.fs-price-lockup__per")
 			imageStyle := e.ChildAttr("div.fs-product-image__inner", "style")
@@ -344,15 +352,14 @@ func (w *NewWorld) Run() error {
 				w.lowPrice = flPrice
 			}
 		})
-		w.cr.OnResponse(func(response *colly.Response) {
-			fmt.Println(string(response.Body))
-		})
 
 		w.cr.OnError(func(response *colly.Response, err error) {
-			log.Println("ERROR:", string(response.Body))
-			log.Println("ERROR", err.Error())
+			log.Println("[ERROR]", "["+SPIDER_NEWWORLD+"]", err)
+			time.Sleep(time.Second)
+			response.Request.Retry()
 		})
-		log.Println("PaknSave Run: " + w.url)
+
+		log.Println("[INFO]", "["+SPIDER_NEWWORLD+"]", "RUN: "+w.url)
 		w.branch = -1
 		w.lowPrice = 99999
 		w.cr.Visit(w.url)

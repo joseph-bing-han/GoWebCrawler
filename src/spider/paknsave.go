@@ -5,10 +5,10 @@ import (
 	"GoWebCrawler/src/utils/cache"
 	"GoWebCrawler/src/utils/mq"
 	"encoding/json"
-	"fmt"
 	"github.com/bregydoc/gtranslate"
 	"github.com/gocolly/colly"
 	"log"
+	"math/rand"
 	"regexp"
 	"strconv"
 	"time"
@@ -56,7 +56,7 @@ var PAKNSAVE_STORES = [...]string{
 	"browser_nearest_store={\"UserLat\":\"-39.590947\",\"UserLng\":\"174.283801\",\"IsSuccess\":true}",
 }
 
-var PAKNSAVE_BRANCH = [...] string{
+var PAKNSAVE_BRANCH = [...]string{
 	"PAK'nSAVE Lower Hutt (Brunswick Street, Hutt Central, Lower Hutt, 5010)",
 	"PAK'nSAVE Royal Oak (691 Manukau Road, Royal Oak, Auckland, 1023)",
 	"PAK'nSAVE Te Awamutu (650-670 Cambridge Road, Te Awamutu, 3800)",
@@ -104,13 +104,15 @@ type Paknsave struct {
 	branch   int
 	lowPrice float64
 	cookie   string
+	isUpdate bool
 }
 
-func (w *Paknsave) SetURL(url string) {
+func (w *Paknsave) SetURL(url string, isUpdate bool) {
 	if w.cr == nil {
-		w.cr = NewCollector()
+		w.cr = NewCollector(false)
 	}
 	w.url = url
+	w.isUpdate = isUpdate
 }
 
 func (w *Paknsave) Run() error {
@@ -126,8 +128,10 @@ func (w *Paknsave) Run() error {
 
 		// 处理所有链接
 		w.cr.OnHTML("a[href]", func(e *colly.HTMLElement) {
+			if w.isUpdate {
+				return
+			}
 			url := e.Attr("href")
-			//fmt.Println("Get URL:" + url)
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
 				url = "https://www.paknsaveonline.co.nz" + url
 				checkKey := SPIDER_PAKNSAVE + url
@@ -135,8 +139,8 @@ func (w *Paknsave) Run() error {
 				//value = ""
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
-					//log.Println("Add URL: " + url)
-					mq.Add(map[string]interface{}{"url": url})
+					log.Println("[INFO]", "["+SPIDER_PAKNSAVE+"]", "Get URL: "+url)
+					mq.Add(map[string]interface{}{"url": url, "update": false})
 				}
 			}
 		})
@@ -149,6 +153,7 @@ func (w *Paknsave) Run() error {
 					cookie := PAKNSAVE_STORES[w.branch]
 					w.branch++
 					e.Request.Headers.Set("cookie", cookie)
+					time.Sleep(time.Second)
 					e.Request.Retry()
 				}
 			}()
@@ -158,16 +163,20 @@ func (w *Paknsave) Run() error {
 				return
 			}
 
-			titleZh, error := gtranslate.TranslateWithParams(
-				title,
-				gtranslate.TranslationParams{
-					From:  "en",
-					To:    "zh",
-					Delay: time.Second * 2,
-				},
-			)
-			if error != nil {
-				titleZh = title
+			titleZh := title
+			if !w.isUpdate {
+				var err error
+				titleZh, err = gtranslate.TranslateWithParams(
+					title,
+					gtranslate.TranslationParams{
+						From:  "en",
+						To:    "zh",
+						Delay: time.Second * 2,
+					},
+				)
+				if err != nil {
+					titleZh = title
+				}
 			}
 			productId := ""
 			optionsJson := e.ChildAttr("div.fs-product-detail__wishlist", "data-options")
@@ -234,17 +243,16 @@ func (w *Paknsave) Run() error {
 			}
 		})
 
-		w.cr.OnResponse(func(response *colly.Response) {
-			fmt.Println(string(response.Body))
-		})
-
 		w.cr.OnError(func(response *colly.Response, err error) {
-			log.Println("ERROR", err.Error())
+			log.Println("[ERROR]", "["+SPIDER_PAKNSAVE+"]", err)
+			time.Sleep(time.Second)
+			response.Request.Retry()
 		})
 
-		log.Println("PaknSave Run: " + w.url)
+		log.Println("[INFO]", "["+SPIDER_PAKNSAVE+"]", "RUN: "+w.url)
 		w.branch = -1
 		w.lowPrice = 99999
+		time.Sleep(time.Second * time.Duration(rand.Intn(5)))
 		w.cr.Visit(w.url)
 
 	}

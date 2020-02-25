@@ -13,15 +13,17 @@ import (
 )
 
 type Warehouse struct {
-	cr  *colly.Collector
-	url string
+	cr       *colly.Collector
+	url      string
+	isUpdate bool
 }
 
-func (w *Warehouse) SetURL(url string) {
+func (w *Warehouse) SetURL(url string, isUpdate bool) {
 	if w.cr == nil {
-		w.cr = NewCollector()
+		w.cr = NewCollector(true)
 	}
 	w.url = url
+	w.isUpdate = isUpdate
 }
 
 func (w *Warehouse) Run() error {
@@ -30,6 +32,9 @@ func (w *Warehouse) Run() error {
 
 		// 处理所有链接
 		w.cr.OnHTML("a[href]", func(e *colly.HTMLElement) {
+			if w.isUpdate {
+				return
+			}
 			url := e.Attr("href")
 			if strings.Contains(url, "https://www.thewarehouse.co.nz") {
 				//fmt.Println(e.Attr("href"))
@@ -37,8 +42,8 @@ func (w *Warehouse) Run() error {
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
-					//log.Println("Add URL: " + url)
-					mq.Add(map[string]interface{}{"url": url})
+					log.Println("[INFO]", "["+SPIDER_WAREHOUSE+"]", "Get URL: "+url)
+					mq.Add(map[string]interface{}{"url": url, "update": false})
 				}
 			}
 		})
@@ -50,17 +55,22 @@ func (w *Warehouse) Run() error {
 				return
 			}
 
-			titleZh, error := gtranslate.TranslateWithParams(
-				title,
-				gtranslate.TranslationParams{
-					From:  "en",
-					To:    "zh",
-					Delay: time.Second * 2,
-				},
-			)
-			if error != nil {
-				titleZh = title
+			titleZh := title
+			if !w.isUpdate {
+				var err error
+				titleZh, err = gtranslate.TranslateWithParams(
+					title,
+					gtranslate.TranslationParams{
+						From:  "en",
+						To:    "zh",
+						Delay: time.Second * 2,
+					},
+				)
+				if err != nil {
+					titleZh = title
+				}
 			}
+
 			itemId := e.ChildAttr("#product-content", "data-itemid")
 			price := e.ChildAttr(".pv-price", "data-price")
 			productId := e.ChildText("div.row-product-details > div.product-description > div.product-number > span.product-id")
@@ -93,7 +103,14 @@ func (w *Warehouse) Run() error {
 				}
 			}
 		})
-		log.Println("Warehouse Run: " + w.url)
+
+		w.cr.OnError(func(response *colly.Response, err error) {
+			log.Println("[ERROR]", "["+SPIDER_WAREHOUSE+"]", err)
+			time.Sleep(time.Second)
+			response.Request.Retry()
+		})
+
+		log.Println("[INFO]", "["+SPIDER_WAREHOUSE+"]", "RUN: "+w.url)
 		w.cr.Visit(w.url)
 
 	}

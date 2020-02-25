@@ -5,6 +5,7 @@ import (
 	"GoWebCrawler/src/web/router"
 	"context"
 	"github.com/foolin/goview"
+	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-gonic/gin"
 	"io"
 	"log"
@@ -13,7 +14,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"time"
-	"github.com/foolin/goview/supports/ginview"
 )
 
 func main() {

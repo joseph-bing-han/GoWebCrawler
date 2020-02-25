@@ -1,0 +1,64 @@
+version: '3'
+services:
+  tor1:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8001:9050" # Tor proxy
+      - "9001:9051" # Tor control port
+
+  tor2:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8002:9050" # Tor proxy
+      - "9002:9051" # Tor control port
+
+  tor3:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8003:9050" # Tor proxy
+      - "9003:9051" # Tor control port
+  tor4:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8004:9050" # Tor proxy
+      - "9004:9051" # Tor control port
+  tor5:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8005:9050" # Tor proxy
+      - "9005:9051" # Tor control port
+  tor6:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8006:9050" # Tor proxy
+      - "9006:9051" # Tor control port
+  tor7:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8007:9050" # Tor proxy
+      - "9007:9051" # Tor control port
+  tor8:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8008:9050" # Tor proxy
+      - "9008:9051" # Tor control port
+  tor9:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8009:9050" # Tor proxy
+      - "9009:9051" # Tor control port
+  tor10:
+    image: dockage/tor-privoxy:latest
+    restart: always
+    ports:
+      - "8010:9050" # Tor proxy
+      - "9010:9051" # Tor control port

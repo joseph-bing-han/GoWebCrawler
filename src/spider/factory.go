@@ -11,7 +11,7 @@ import (
 )
 
 type Spider interface {
-	SetURL(url string)
+	SetURL(url string, isUpdate bool)
 	Run() error
 }
 
@@ -34,7 +34,7 @@ func Create(name string) Spider {
 	}
 }
 
-func NewCollector() *colly.Collector {
+func NewCollector(defaultProxy bool) *colly.Collector {
 	cr := colly.NewCollector()
 
 	// 使用随机User Agent
@@ -44,9 +44,13 @@ func NewCollector() *colly.Collector {
 	extensions.Referer(cr)
 
 	// 初始化代理池
-	var proxyIP [] string
+	var proxyIP []string
 
-	proxyIP = strings.Split(conf.Get("TOR_PROXY", ""), ",")
+	if defaultProxy {
+		proxyIP = strings.Split(conf.Get("TOR_PROXY", "socks5://xebni:xebni@13.239.73.54:1984"), ",")
+	} else {
+		proxyIP = strings.Split(conf.Get("ALT_PROXY", "socks5://xebni:xebni@13.239.73.54:1984"), ",")
+	}
 
 	ps, err := proxy.RoundRobinProxySwitcher(proxyIP...)
 

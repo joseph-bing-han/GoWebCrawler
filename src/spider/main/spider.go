@@ -6,30 +6,33 @@ import (
 	"GoWebCrawler/src/utils/mq"
 	"math/rand"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type Msg struct {
-	id  string
-	url string
+	id       string
+	url      string
+	isUpdate bool
 }
 
 func handler(ch chan Msg) {
 	rand.Seed(time.Now().UnixNano())
 	for {
 		// todo: test
-		time.Sleep(time.Second * time.Duration(12+rand.Intn(8)))
+		time.Sleep(time.Second * time.Duration(rand.Intn(8)+2))
 
 		msg := <-ch
 		url := msg.url
 		id := msg.id
+		isUpdate := msg.isUpdate
 		//fmt.Println("Read URL:" + url)
 
 		// todo: test
 		//if true {
 		// 判断是否已经查过了
-		checkKey :=  "RUN" + url
+		checkKey := "RUN" + url
 		if !cache.Has(checkKey) {
 			cache.Set(checkKey, 1)
 			var className string
@@ -46,7 +49,7 @@ func handler(ch chan Msg) {
 			}
 			spider := spider.Create(className)
 			//log.Println("Get URL: " + url)
-			spider.SetURL(url)
+			spider.SetURL(url, isUpdate)
 			if err := spider.Run(); err == nil {
 				mq.Ack(id)
 			}
@@ -71,9 +74,11 @@ func main() {
 	// 无限循环，查询消息队列，
 	for {
 		if id, messages, error := mq.Read(); error == nil {
+			update, _ := strconv.ParseBool(messages["update"].(string))
 			ch <- Msg{
-				id:  id,
-				url: messages["url"].(string),
+				id:       id,
+				url:      messages["url"].(string),
+				isUpdate: update,
 			}
 		} else {
 			time.Sleep(time.Second)

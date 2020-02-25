@@ -17,20 +17,22 @@ import (
 )
 
 type Kmart struct {
-	cr      *colly.Collector
-	url     string
-	cookies string
+	cr       *colly.Collector
+	url      string
+	cookies  string
+	isUpdate bool
 }
 
 func (k *Kmart) SetCookies(cookies string) {
 	k.cookies = cookies
 }
 
-func (w *Kmart) SetURL(url string) {
+func (w *Kmart) SetURL(url string, isUpdate bool) {
 	if w.cr == nil {
-		w.cr = NewCollector()
+		w.cr = NewCollector(true)
 	}
 	w.url = url
+	w.isUpdate = isUpdate
 }
 
 func (w *Kmart) Run() error {
@@ -42,17 +44,19 @@ func (w *Kmart) Run() error {
 
 		// 处理所有链接
 		w.cr.OnHTML("a[href]", func(e *colly.HTMLElement) {
-			//fmt.Println(e)
+			if w.isUpdate {
+				return
+			}
 			url := e.Attr("href")
 			//fmt.Println("Get URL:" + url)
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
 				url = "https://www.kmart.co.nz" + url
-				checkKey :=  SPIDER_KMART + url
+				checkKey := SPIDER_KMART + url
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
-					//log.Println("Add URL: " + url)
-					mq.Add(map[string]interface{}{"url": url})
+					log.Println("[INFO]", "["+SPIDER_KMART+"]", "Get URL: "+url)
+					mq.Add(map[string]interface{}{"url": url, "update": false})
 				}
 			}
 		})
@@ -70,16 +74,20 @@ func (w *Kmart) Run() error {
 				return
 			}
 
-			titleZh, error := gtranslate.TranslateWithParams(
-				title,
-				gtranslate.TranslationParams{
-					From:  "en",
-					To:    "zh",
-					Delay: time.Second * 2,
-				},
-			)
-			if error != nil {
-				titleZh = title
+			titleZh := title
+			if !w.isUpdate {
+				var err error
+				titleZh, err = gtranslate.TranslateWithParams(
+					title,
+					gtranslate.TranslationParams{
+						From:  "en",
+						To:    "zh",
+						Delay: time.Second * 2,
+					},
+				)
+				if err != nil {
+					titleZh = title
+				}
 			}
 
 			itemId := e.ChildText("h7")
@@ -93,7 +101,7 @@ func (w *Kmart) Run() error {
 			//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + price + " ---> " + image)
 			if productId != "" && price != "" {
 				// 在缓存系统中校验是否已经保存过了当天的数据
-				checkKey :=  SPIDER_KMART + productId
+				checkKey := SPIDER_KMART + productId
 				if !cache.Has(checkKey) {
 
 					cache.Set(checkKey, 1)
@@ -115,7 +123,14 @@ func (w *Kmart) Run() error {
 				}
 			}
 		})
-		log.Println("Kmart Run: " + w.url)
+
+		w.cr.OnError(func(response *colly.Response, err error) {
+			log.Println("[ERROR]", "["+SPIDER_KMART+"]", err)
+			time.Sleep(time.Second)
+			response.Request.Retry()
+		})
+
+		log.Println("[INFO]", "["+SPIDER_KMART+"]", "RUN: "+w.url)
 		w.cr.Visit(w.url)
 
 	}

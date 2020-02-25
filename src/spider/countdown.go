@@ -15,15 +15,17 @@ import (
 )
 
 type Countdown struct {
-	cr  *colly.Collector
-	url string
+	cr       *colly.Collector
+	url      string
+	isUpdate bool
 }
 
-func (w *Countdown) SetURL(url string) {
+func (w *Countdown) SetURL(url string, isUpdate bool) {
 	if w.cr == nil {
-		w.cr = NewCollector()
+		w.cr = NewCollector(true)
 	}
 	w.url = url
+	w.isUpdate = isUpdate
 }
 
 func (w *Countdown) Run() error {
@@ -32,6 +34,9 @@ func (w *Countdown) Run() error {
 
 		// 处理所有链接
 		w.cr.OnHTML("a[href]", func(e *colly.HTMLElement) {
+			if w.isUpdate {
+				return
+			}
 			url := e.Attr("href")
 			//fmt.Println("Get URL:" + url)
 			if match, _ := regexp.MatchString(`^/[\w\W]+$`, url); match {
@@ -42,12 +47,12 @@ func (w *Countdown) Run() error {
 					return
 				}
 				url = "https://shop.countdown.co.nz" + url
-				checkKey :=  SPIDER_COUNTDOWN + url
+				checkKey := SPIDER_COUNTDOWN + url
 				// todo: test
 				if !cache.Has(checkKey) {
 					cache.Set(checkKey, 1)
-					//fmt.Println("Add URL: " + url)
-					mq.Add(map[string]interface{}{"url": url})
+					log.Println("[INFO]", "["+SPIDER_COUNTDOWN+"]", "Get URL: "+url)
+					mq.Add(map[string]interface{}{"url": url, "update": false})
 				}
 			}
 		})
@@ -67,16 +72,20 @@ func (w *Countdown) Run() error {
 						productId := product["slug"].(string)
 
 						if title != "" && productId != "" {
-							titleZh, error := gtranslate.TranslateWithParams(
-								title,
-								gtranslate.TranslationParams{
-									From:  "en",
-									To:    "zh",
-									Delay: time.Second * 2,
-								},
-							)
-							if error != nil {
-								titleZh = title
+							titleZh := title
+							if !w.isUpdate {
+								var err error
+								titleZh, err = gtranslate.TranslateWithParams(
+									title,
+									gtranslate.TranslationParams{
+										From:  "en",
+										To:    "zh",
+										Delay: time.Second * 2,
+									},
+								)
+								if err != nil {
+									titleZh = title
+								}
 							}
 
 							itemId := product["sku"].(string)
@@ -97,7 +106,7 @@ func (w *Countdown) Run() error {
 							//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + strPrice + "/" + unit + " ---> " + image)
 
 							// 在缓存系统中校验是否已经保存过了当天的数据
-							checkKey :=  SPIDER_COUNTDOWN + productId
+							checkKey := SPIDER_COUNTDOWN + productId
 							if !cache.Has(checkKey) {
 
 								cache.Set(checkKey, 1)
@@ -124,7 +133,14 @@ func (w *Countdown) Run() error {
 			}
 
 		})
-		log.Println("Countdown Run: " + w.url)
+
+		w.cr.OnError(func(response *colly.Response, err error) {
+			log.Println("[ERROR]", "["+SPIDER_COUNTDOWN+"]", err)
+			time.Sleep(time.Second)
+			response.Request.Retry()
+		})
+
+		log.Println("[INFO]", "["+SPIDER_COUNTDOWN+"]", "RUN: "+w.url)
 		w.cr.Visit(w.url)
 
 	}
