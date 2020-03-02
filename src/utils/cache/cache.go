@@ -3,8 +3,8 @@ package cache
 import (
 	"GoWebCrawler/src/utils/conf"
 	_ "fmt"
-	"github.com/eko/gocache/cache"
-	"github.com/eko/gocache/store"
+	"github.com/joseph-bing-han/gocache/cache"
+	"github.com/joseph-bing-han/gocache/store"
 	"github.com/go-redis/redis/v7"
 	"strconv"
 	"time"

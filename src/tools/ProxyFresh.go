@@ -21,7 +21,7 @@ func main() {
 			time.Sleep(time.Second * 2)
 			conn.Write([]byte("AUTHENTICATE \"password\"\r\nSIGNAL NEWNYM\r\n"))
 			conn.Close()
-			log.Println(ctlIP, "Refresh Proxy Server IP.")
+			log.Println("[INFO]", "["+ctlIP+"]", "Refresh Proxy IP.")
 		}
 	}
 }

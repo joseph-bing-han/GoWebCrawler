@@ -21,7 +21,7 @@ func handler(ch chan Msg) {
 	rand.Seed(time.Now().UnixNano())
 	for {
 		// todo: test
-		time.Sleep(time.Second * time.Duration(rand.Intn(8)+2))
+		time.Sleep(time.Second * time.Duration(rand.Intn(20)+10))
 
 		msg := <-ch
 		url := msg.url

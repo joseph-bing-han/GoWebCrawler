@@ -3,6 +3,7 @@ package spider
 import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
+	"GoWebCrawler/src/utils/conf"
 	"GoWebCrawler/src/utils/mq"
 	"github.com/bregydoc/gtranslate"
 	"github.com/gocolly/colly"
@@ -16,6 +17,7 @@ type Warehouse struct {
 	cr       *colly.Collector
 	url      string
 	isUpdate bool
+	tries    int
 }
 
 func (w *Warehouse) SetURL(url string, isUpdate bool) {
@@ -56,19 +58,17 @@ func (w *Warehouse) Run() error {
 			}
 
 			titleZh := title
-			if !w.isUpdate {
-				var err error
-				titleZh, err = gtranslate.TranslateWithParams(
-					title,
-					gtranslate.TranslationParams{
-						From:  "en",
-						To:    "zh",
-						Delay: time.Second * 2,
-					},
-				)
-				if err != nil {
-					titleZh = title
-				}
+			var err error
+			titleZh, err = gtranslate.TranslateWithParams(
+				title,
+				gtranslate.TranslationParams{
+					From:  "en",
+					To:    "zh",
+					Delay: time.Second * 2,
+				},
+			)
+			if err != nil {
+				titleZh = title
 			}
 
 			itemId := e.ChildAttr("#product-content", "data-itemid")
@@ -77,6 +77,11 @@ func (w *Warehouse) Run() error {
 			image := e.ChildAttr(".primary-image", "src")
 
 			url := e.Request.URL.String()
+
+			category, err := cache.Get("Category-" + url)
+			if err != nil {
+				category = ""
+			}
 
 			if productId != "" && price != "" {
 
@@ -95,7 +100,18 @@ func (w *Warehouse) Run() error {
 						item.TitleZh = titleZh
 						item.Website = SPIDER_WAREHOUSE
 						item.Url = url
+						item.Category = category.(string)
 						model.DB.Create(&item)
+					} else {
+						item.Image = image
+						item.InternalID = itemId
+						item.ProductID = productId
+						item.Title = title
+						item.TitleZh = titleZh
+						item.Website = SPIDER_WAREHOUSE
+						item.Url = url
+						item.Category = category.(string)
+						model.DB.Save(&item)
 					}
 
 					flPrice, _ := strconv.ParseFloat(price, 10)
@@ -106,8 +122,12 @@ func (w *Warehouse) Run() error {
 
 		w.cr.OnError(func(response *colly.Response, err error) {
 			log.Println("[ERROR]", "["+SPIDER_WAREHOUSE+"]", err)
-			time.Sleep(time.Second)
-			response.Request.Retry()
+			w.tries--
+			if w.tries >= 0 {
+				time.Sleep(time.Second)
+				response.Request.Retry()
+			}
+
 		})
 
 		log.Println("[INFO]", "["+SPIDER_WAREHOUSE+"]", "RUN: "+w.url)
@@ -120,6 +140,13 @@ func (w *Warehouse) Run() error {
 func init() {
 	// 在启动时注册Warehouse类工厂
 	Register(SPIDER_WAREHOUSE, func() Spider {
-		return new(Warehouse)
+		warehouse := new(Warehouse)
+		tries, err := strconv.Atoi(conf.Get("TRIES", "3"))
+		if err != nil {
+			tries = 3
+		}
+		warehouse.tries = tries
+
+		return warehouse
 	})
 }

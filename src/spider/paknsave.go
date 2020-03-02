@@ -3,6 +3,7 @@ package spider
 import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
+	"GoWebCrawler/src/utils/conf"
 	"GoWebCrawler/src/utils/mq"
 	"encoding/json"
 	"github.com/bregydoc/gtranslate"
@@ -105,6 +106,7 @@ type Paknsave struct {
 	lowPrice float64
 	cookie   string
 	isUpdate bool
+	tries    int
 }
 
 func (w *Paknsave) SetURL(url string, isUpdate bool) {
@@ -164,19 +166,17 @@ func (w *Paknsave) Run() error {
 			}
 
 			titleZh := title
-			if !w.isUpdate {
-				var err error
-				titleZh, err = gtranslate.TranslateWithParams(
-					title,
-					gtranslate.TranslationParams{
-						From:  "en",
-						To:    "zh",
-						Delay: time.Second * 2,
-					},
-				)
-				if err != nil {
-					titleZh = title
-				}
+			var err error
+			titleZh, err = gtranslate.TranslateWithParams(
+				title,
+				gtranslate.TranslationParams{
+					From:  "en",
+					To:    "zh",
+					Delay: time.Second * 2,
+				},
+			)
+			if err != nil {
+				titleZh = title
 			}
 			productId := ""
 			optionsJson := e.ChildAttr("div.fs-product-detail__wishlist", "data-options")
@@ -192,6 +192,12 @@ func (w *Paknsave) Run() error {
 			image := regexp.MustCompile(`http.[^)]+`).FindString(imageStyle)
 
 			url := e.Request.URL.String()
+
+			category, err := cache.Get("Category-" + url)
+			if err != nil {
+				category = ""
+			}
+
 			//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + price + "/" + unit + " ---> " + image)
 			flPrice, _ := strconv.ParseFloat(price, 10)
 			if productId != "" && price != "" && flPrice <= w.lowPrice {
@@ -211,7 +217,19 @@ func (w *Paknsave) Run() error {
 						item.Website = SPIDER_PAKNSAVE
 						item.Unit = unit
 						item.Url = url
+						item.Category = category.(string)
 						model.DB.Create(&item)
+					} else {
+						item.Image = image
+						item.ProductID = productId
+						item.InternalID = productId
+						item.Title = title
+						item.TitleZh = titleZh
+						item.Website = SPIDER_PAKNSAVE
+						item.Unit = unit
+						item.Url = url
+						item.Category = category.(string)
+						model.DB.Save(&item)
 					}
 
 					branch := PAKNSAVE_BRANCH[0]
@@ -245,8 +263,12 @@ func (w *Paknsave) Run() error {
 
 		w.cr.OnError(func(response *colly.Response, err error) {
 			log.Println("[ERROR]", "["+SPIDER_PAKNSAVE+"]", err)
-			time.Sleep(time.Second)
-			response.Request.Retry()
+			w.tries--
+			if w.tries >= 0 {
+				time.Sleep(time.Second)
+				response.Request.Retry()
+			}
+
 		})
 
 		log.Println("[INFO]", "["+SPIDER_PAKNSAVE+"]", "RUN: "+w.url)
@@ -262,6 +284,13 @@ func (w *Paknsave) Run() error {
 func init() {
 	// 在启动时注册Paknsave类工厂
 	Register(SPIDER_PAKNSAVE, func() Spider {
-		return new(Paknsave)
+		paknsave := new(Paknsave)
+		tries, err := strconv.Atoi(conf.Get("TRIES", "3"))
+		if err != nil {
+			tries = 3
+		}
+		paknsave.tries = tries
+
+		return paknsave
 	})
 }

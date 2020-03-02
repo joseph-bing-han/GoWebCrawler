@@ -3,6 +3,7 @@ package spider
 import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
+	"GoWebCrawler/src/utils/conf"
 	"GoWebCrawler/src/utils/mq"
 	"encoding/json"
 	"github.com/bregydoc/gtranslate"
@@ -213,9 +214,10 @@ type NewWorld struct {
 	branch   int
 	lowPrice float64
 	isUpdate bool
+	tries    int
 }
 
-func (w *NewWorld) SetURL(url string,isUpdate bool) {
+func (w *NewWorld) SetURL(url string, isUpdate bool) {
 	if w.cr == nil {
 		w.cr = NewCollector(false)
 	}
@@ -279,19 +281,17 @@ func (w *NewWorld) Run() error {
 			}
 
 			titleZh := title
-			if !w.isUpdate {
-				var err error
-				titleZh, err = gtranslate.TranslateWithParams(
-					title,
-					gtranslate.TranslationParams{
-						From:  "en",
-						To:    "zh",
-						Delay: time.Second * 2,
-					},
-				)
-				if err != nil {
-					titleZh = title
-				}
+			var err error
+			titleZh, err = gtranslate.TranslateWithParams(
+				title,
+				gtranslate.TranslationParams{
+					From:  "en",
+					To:    "zh",
+					Delay: time.Second * 2,
+				},
+			)
+			if err != nil {
+				titleZh = title
 			}
 
 			price := e.ChildText("span.fs-price-lockup__dollars") + "." + e.ChildText("span.fs-price-lockup__cents")
@@ -300,6 +300,11 @@ func (w *NewWorld) Run() error {
 			image := regexp.MustCompile(`http.[^)]+`).FindString(imageStyle)
 
 			url := e.Request.URL.String()
+
+			category, err := cache.Get("Category-" + url)
+			if err != nil {
+				category = ""
+			}
 
 			flPrice, _ := strconv.ParseFloat(price, 10)
 			if productId != "" && price != "" && flPrice <= w.lowPrice {
@@ -320,7 +325,19 @@ func (w *NewWorld) Run() error {
 						item.Unit = unit
 						item.Website = SPIDER_NEWWORLD
 						item.Url = url
+						item.Category = category.(string)
 						model.DB.Create(&item)
+					} else {
+						item.Image = image
+						item.ProductID = productId
+						item.InternalID = productId
+						item.Title = title
+						item.TitleZh = titleZh
+						item.Unit = unit
+						item.Website = SPIDER_NEWWORLD
+						item.Url = url
+						item.Category = category.(string)
+						model.DB.Save(&item)
 					}
 
 					branch := NEWWORLD_BRANCH[0]
@@ -355,8 +372,12 @@ func (w *NewWorld) Run() error {
 
 		w.cr.OnError(func(response *colly.Response, err error) {
 			log.Println("[ERROR]", "["+SPIDER_NEWWORLD+"]", err)
-			time.Sleep(time.Second)
-			response.Request.Retry()
+			w.tries--
+			if w.tries >= 0 {
+				time.Sleep(time.Second)
+				response.Request.Retry()
+			}
+
 		})
 
 		log.Println("[INFO]", "["+SPIDER_NEWWORLD+"]", "RUN: "+w.url)
@@ -371,6 +392,12 @@ func (w *NewWorld) Run() error {
 func init() {
 	// 在启动时注册NewWorld类工厂
 	Register(SPIDER_NEWWORLD, func() Spider {
-		return new(NewWorld)
+		newword := new(NewWorld)
+		tries, err := strconv.Atoi(conf.Get("TRIES", "3"))
+		if err != nil {
+			tries = 3
+		}
+		newword.tries = tries
+		return newword
 	})
 }

@@ -3,11 +3,10 @@ package spider
 import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
+	"GoWebCrawler/src/utils/chromed"
+	"GoWebCrawler/src/utils/conf"
 	"GoWebCrawler/src/utils/mq"
-	"context"
 	"github.com/bregydoc/gtranslate"
-	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/chromedp"
 	"github.com/gocolly/colly"
 	"log"
 	"regexp"
@@ -21,10 +20,7 @@ type Kmart struct {
 	url      string
 	cookies  string
 	isUpdate bool
-}
-
-func (k *Kmart) SetCookies(cookies string) {
-	k.cookies = cookies
+	tries    int
 }
 
 func (w *Kmart) SetURL(url string, isUpdate bool) {
@@ -98,6 +94,11 @@ func (w *Kmart) Run() error {
 
 			url := e.Request.URL.String()
 
+			category, err := cache.Get("Category-" + url)
+			if err != nil {
+				category = ""
+			}
+
 			//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + price + " ---> " + image)
 			if productId != "" && price != "" {
 				// 在缓存系统中校验是否已经保存过了当天的数据
@@ -115,7 +116,18 @@ func (w *Kmart) Run() error {
 						item.TitleZh = titleZh
 						item.Website = SPIDER_KMART
 						item.Url = url
+						item.Category = category.(string)
 						model.DB.Create(&item)
+					} else {
+						item.Image = image
+						item.ProductID = productId
+						item.InternalID = itemId
+						item.Title = title
+						item.TitleZh = titleZh
+						item.Website = SPIDER_KMART
+						item.Url = url
+						item.Category = category.(string)
+						model.DB.Save(&item)
 					}
 
 					flPrice, _ := strconv.ParseFloat(price, 10)
@@ -126,8 +138,13 @@ func (w *Kmart) Run() error {
 
 		w.cr.OnError(func(response *colly.Response, err error) {
 			log.Println("[ERROR]", "["+SPIDER_KMART+"]", err)
-			time.Sleep(time.Second)
-			response.Request.Retry()
+
+			w.tries--
+			if w.tries >= 0 {
+				time.Sleep(time.Second)
+				response.Request.Retry()
+			}
+
 		})
 
 		log.Println("[INFO]", "["+SPIDER_KMART+"]", "RUN: "+w.url)
@@ -137,47 +154,6 @@ func (w *Kmart) Run() error {
 	return nil
 }
 
-func getCookies() string {
-	// create chrome instance
-	ctx, cancel := chromedp.NewContext(
-		context.Background(),
-		chromedp.WithLogf(log.Printf),
-	)
-	defer cancel()
-
-	// create a timeout
-	ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-
-	var result string
-	// navigate to a page, wait for an element, click
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(`https://www.kmart.co.nz/`),
-		// wait for footer element is visible (ie, page is loaded)
-		chromedp.WaitVisible(`body > div#page`),
-		// find and click "Expand All" link
-
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			// 获取cookie
-			cookies, err := network.GetAllCookies().Do(ctx)
-			// 将cookie拼接成header请求中cookie字段的模式
-			for _, v := range cookies {
-				result = result + v.Name + "=" + v.Value + "; "
-
-			}
-			if err != nil {
-				return err
-			}
-			return nil
-		}),
-	)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	return result
-}
-
 func init() {
 	var cookies string
 	key := time.Now().Format("20060102") + SPIDER_KMART + "-cookie-key"
@@ -185,14 +161,19 @@ func init() {
 	if error == nil || value.(string) != "" {
 		cookies = value.(string)
 	} else {
-		cookies = getCookies()
+		cookies = chromed.GetCookie("https://www.kmart.co.nz/", key)
 		cache.Set(key, cookies)
 	}
 	//log.Println(cookies)
 	// 在启动时注册Kmart类工厂
 	Register(SPIDER_KMART, func() Spider {
 		kmart := new(Kmart)
-		kmart.SetCookies(cookies)
+		kmart.cookies = cookies
+		tries, err := strconv.Atoi(conf.Get("TRIES", "3"))
+		if err != nil {
+			tries = 3
+		}
+		kmart.tries = tries
 		return kmart
 	})
 }

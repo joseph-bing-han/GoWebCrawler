@@ -3,6 +3,8 @@ package spider
 import (
 	"GoWebCrawler/src/model"
 	"GoWebCrawler/src/utils/cache"
+	"GoWebCrawler/src/utils/chromed"
+	"GoWebCrawler/src/utils/conf"
 	"GoWebCrawler/src/utils/mq"
 	gjson "encoding/json"
 	"github.com/bitly/go-simplejson"
@@ -10,6 +12,7 @@ import (
 	"github.com/gocolly/colly"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,12 +20,14 @@ import (
 type Countdown struct {
 	cr       *colly.Collector
 	url      string
+	cookies  string
 	isUpdate bool
+	tries    int
 }
 
 func (w *Countdown) SetURL(url string, isUpdate bool) {
 	if w.cr == nil {
-		w.cr = NewCollector(true)
+		w.cr = NewCollector(false)
 	}
 	w.url = url
 	w.isUpdate = isUpdate
@@ -31,6 +36,10 @@ func (w *Countdown) SetURL(url string, isUpdate bool) {
 func (w *Countdown) Run() error {
 
 	if len(w.url) > 0 {
+
+		w.cr.OnRequest(func(request *colly.Request) {
+			request.Headers.Set("cookie", w.cookies)
+		})
 
 		// 处理所有链接
 		w.cr.OnHTML("a[href]", func(e *colly.HTMLElement) {
@@ -105,6 +114,11 @@ func (w *Countdown) Run() error {
 							//strPrice := fmt.Sprintf("%f", price)
 							//fmt.Println(title + "(" + titleZh + ") > " + productId + " > " + strPrice + "/" + unit + " ---> " + image)
 
+							category, err := cache.Get("Category-" + url)
+							if err != nil {
+								category = ""
+							}
+
 							// 在缓存系统中校验是否已经保存过了当天的数据
 							checkKey := SPIDER_COUNTDOWN + productId
 							if !cache.Has(checkKey) {
@@ -121,7 +135,12 @@ func (w *Countdown) Run() error {
 									item.TitleZh = titleZh
 									item.Website = SPIDER_COUNTDOWN
 									item.Url = url
+									item.Category = category.(string)
 									model.DB.Create(&item)
+								} else {
+									item.Url = url
+									item.Category = category.(string)
+									model.DB.Save(&item)
 								}
 								model.DB.Model(&item).Association("Prices").Append(model.Price{Price: price})
 							}
@@ -134,22 +153,125 @@ func (w *Countdown) Run() error {
 
 		})
 
+		w.cr.OnHTML("div#content-panel", func(e *colly.HTMLElement) {
+
+			title := e.ChildText("h1")
+			if title == "" {
+				return
+			}
+
+			products := regexp.MustCompile(`name=([^&]+)`).FindStringSubmatch(e.Request.URL.String())
+			productId := products[1]
+			if title != "" && productId != "" {
+				titleZh := title
+				var err error
+				titleZh, err = gtranslate.TranslateWithParams(
+					title,
+					gtranslate.TranslationParams{
+						From:  "en",
+						To:    "zh",
+						Delay: time.Second * 2,
+					},
+				)
+				if err != nil {
+					titleZh = title
+				}
+
+				unit := ""
+				itemId := e.ChildAttr("input[name='stockcode']", "value")
+				priceText := e.ChildText("span.price")
+				prices := regexp.MustCompile(`\$(\d+\.\d+)(.*)`).FindStringSubmatch(priceText)
+				price := prices[1]
+				if len(prices) == 3 {
+					unit = strings.TrimSpace(prices[2])
+				}
+
+				image := e.ChildAttr("img.product-image", "src")
+				image = "https://shop.countdown.co.nz" + image
+
+				url := e.Request.URL.String()
+
+				category, err := cache.Get("Category-" + url)
+				if err != nil {
+					category = ""
+				}
+
+				//fmt.Println(title + "(" + titleZh + ") " + category.(string) + " > " + productId + "[" + itemId + "] > " + price + "/" + unit + " ---> " + image)
+
+				// 在缓存系统中校验是否已经保存过了当天的数据
+				checkKey := SPIDER_COUNTDOWN + productId
+				if !cache.Has(checkKey) {
+
+					cache.Set(checkKey, 1)
+					var item model.Item
+					if model.DB.Where("website = ? AND product_id = ?", SPIDER_COUNTDOWN, productId).First(&item).RecordNotFound() {
+						// 没找到旧数据时，新建商品记录
+						item.Image = image
+						item.Unit = unit
+						item.ProductID = productId
+						item.InternalID = itemId
+						item.Title = title
+						item.TitleZh = titleZh
+						item.Website = SPIDER_COUNTDOWN
+						item.Url = url
+						item.Category = category.(string)
+						model.DB.Create(&item)
+					} else {
+						item.Image = image
+						item.Unit = unit
+						item.ProductID = productId
+						item.InternalID = itemId
+						item.Title = title
+						item.TitleZh = titleZh
+						item.Website = SPIDER_COUNTDOWN
+						item.Url = url
+						item.Category = category.(string)
+						model.DB.Save(&item)
+					}
+					flPrice, _ := strconv.ParseFloat(price, 10)
+					model.DB.Model(&item).Association("Prices").Append(model.Price{Price: flPrice})
+				}
+			}
+
+		})
+
 		w.cr.OnError(func(response *colly.Response, err error) {
 			log.Println("[ERROR]", "["+SPIDER_COUNTDOWN+"]", err)
-			time.Sleep(time.Second)
-			response.Request.Retry()
+			w.tries--
+			if w.tries >= 0 {
+				time.Sleep(time.Second)
+				response.Request.Retry()
+			}
+
 		})
 
 		log.Println("[INFO]", "["+SPIDER_COUNTDOWN+"]", "RUN: "+w.url)
 		w.cr.Visit(w.url)
-
 	}
 	return nil
 }
 
 func init() {
+	var cookies string
+	key := time.Now().Format("20060102") + SPIDER_COUNTDOWN + "-cookie-key"
+	value, error := cache.Get(key)
+	if error == nil || value.(string) != "" {
+		cookies = value.(string)
+	} else {
+		cookies = chromed.GetCookie("https://shop.countdown.co.nz", key)
+		cache.Set(key, cookies)
+	}
+
 	// 在启动时注册Countdown类工厂
 	Register(SPIDER_COUNTDOWN, func() Spider {
-		return new(Countdown)
+		countdown := new(Countdown)
+		countdown.cookies = cookies
+		tries, err := strconv.Atoi(conf.Get("TRIES", "3"))
+		if err != nil {
+			tries = 3
+		}
+		countdown.tries = tries
+
+		return countdown
 	})
 }
