@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -26,21 +27,31 @@ func main() {
 
 	/////////////////////////////////////////////////////////
 	// 日志相关
-	// 禁用控制台颜色，将日志写入文件时不需要控制台颜色。
-	gin.DisableConsoleColor()
 
-	// 创建文件夹
-	logFile := conf.Get("WEB_SERVER_LOG_FILE", "./logs/gin.log")
-	path, _ := filepath.Split(logFile)
-	_ = os.MkdirAll(path, os.ModePerm)
+	if blToFile, err := strconv.ParseBool(conf.Get("WEB_SERVER_LOG_TO_FILE", "false"));
+		err == nil && blToFile {
+		// 禁用控制台颜色，将日志写入文件时不需要控制台颜色。
+		gin.DisableConsoleColor()
 
-	// 记录到文件。
-	f, _ := os.Create(logFile)
-	gin.DefaultWriter = io.MultiWriter(f)
+		// 创建文件夹
+		logFile := conf.Get("WEB_SERVER_LOG_FILE", "./logs/gin.log")
+		path, _ := filepath.Split(logFile)
+		_ = os.MkdirAll(path, os.ModePerm)
 
-	// 如果需要同时将日志写入文件和控制台，请使用以下代码。
-	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+		// 记录到文件。
+		f, _ := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+		//gin.DefaultWriter = io.MultiWriter(f)
+
+		// 如果需要同时将日志写入文件和控制台，请使用以下代码。
+		gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+
+	}
 	////////////////////////////////////////////////////////
+
+	// 定义调试模式下的日志格式
+	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
+		log.Printf("(debug) %v %v -> %v:%v\n", httpMethod, absolutePath, handlerName, nuHandlers)
+	}
 
 	gRouter := gin.Default()
 
@@ -56,6 +67,7 @@ func main() {
 	gRouter.Static("/img", "resources/img")
 	gRouter.Static("/js", "resources/js")
 	gRouter.Static("/css", "resources/css")
+	gRouter.Static("/fonts", "resources/fonts")
 
 	// 注册路由列表
 	new(router.DefaultRouter).Register(gRouter)
