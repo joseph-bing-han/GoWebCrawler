@@ -151,14 +151,18 @@ func (w *Paknsave) Run() error {
 		w.cr.OnHTML(".fs-product-detail,.js-breadcrumbs", func(e *colly.HTMLElement) {
 
 			defer func() {
-				if len(PAKNSAVE_STORES) > w.branch && w.branch >= 0 {
-					cookie := PAKNSAVE_STORES[w.branch]
+				if len(PAKNSAVE_STORES) > w.branch+1 && w.branch >= 0 {
 					w.branch++
+					cookie := PAKNSAVE_STORES[w.branch]
 					e.Request.Headers.Set("cookie", cookie)
 					time.Sleep(time.Second)
 					e.Request.Retry()
 				}
 			}()
+
+			if w.branch == -1 {
+				w.branch = 0
+			}
 
 			title := e.ChildText("h1")
 			if title == "" {
@@ -233,8 +237,8 @@ func (w *Paknsave) Run() error {
 					}
 
 					branch := PAKNSAVE_BRANCH[0]
-					if w.branch >= 0 {
-						branch = PAKNSAVE_BRANCH[w.branch]
+					if w.branch > 0 {
+						branch = PAKNSAVE_BRANCH[w.branch-1]
 					}
 
 					model.DB.Model(&item).Association("Prices").Append(model.Price{Price: flPrice, Branch: branch})
@@ -254,9 +258,7 @@ func (w *Paknsave) Run() error {
 						}
 					}
 				}
-				if w.branch == -1 {
-					w.branch++
-				}
+
 				w.lowPrice = flPrice
 			}
 		})

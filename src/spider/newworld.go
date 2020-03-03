@@ -256,16 +256,22 @@ func (w *NewWorld) Run() error {
 		// 处理商品页面数据
 		w.cr.OnHTML("section.fs-product-detail", func(e *colly.HTMLElement) {
 			defer func() {
-				if len(NEWWORLD_STORES) > w.branch && w.branch >= 0 {
-					cookie := NEWWORLD_STORES[w.branch]
+				if len(NEWWORLD_STORES) > w.branch+1 && w.branch >= 0 {
 					w.branch++
+					cookie := NEWWORLD_STORES[w.branch]
 					e.Request.Headers.Set("cookie", cookie)
+					time.Sleep(time.Second)
 					e.Request.Retry()
 				}
 			}()
 
+			if w.branch == -1 {
+				w.branch = 0
+			}
+
 			productId := ""
 			optionsJson := e.ChildAttr("div.fs-product-detail__wishlist", "data-options")
+
 			if len(optionsJson) > 0 {
 				var options map[string]interface{}
 				json.Unmarshal([]byte(optionsJson), &options)
@@ -294,7 +300,9 @@ func (w *NewWorld) Run() error {
 				titleZh = title
 			}
 
-			price := e.ChildText("span.fs-price-lockup__dollars") + "." + e.ChildText("span.fs-price-lockup__cents")
+			price1 := regexp.MustCompile(`\n?(\d+)$`).FindStringSubmatch(e.ChildText("span.fs-price-lockup__dollars"))
+			price2 := regexp.MustCompile(`\d?(\d{2})$`).FindStringSubmatch(e.ChildText("span.fs-price-lockup__cents"))
+			price := price1[1] + "." + price2[1]
 			unit := e.ChildText("span.fs-price-lockup__per")
 			imageStyle := e.ChildAttr("div.fs-product-image__inner", "style")
 			image := regexp.MustCompile(`http.[^)]+`).FindString(imageStyle)
@@ -363,10 +371,6 @@ func (w *NewWorld) Run() error {
 					}
 				}
 
-				if w.branch == -1 {
-					w.branch++
-				}
-				w.lowPrice = flPrice
 			}
 		})
 
